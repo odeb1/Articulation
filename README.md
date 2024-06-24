@@ -1,4 +1,4 @@
-# DOS - Deformable Objects Studio
+# Articulation Project
 In development.
 
 ## Installation
