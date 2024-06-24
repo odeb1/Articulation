@@ -1,0 +1,4 @@
+__pycache__
+.neptune/async
+third_party/Mask2Former/
+third_party/ODISE/
