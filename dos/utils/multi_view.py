@@ -61,6 +61,75 @@ def get_4_alternating_phi(device, last_phi=[-1]):
     return torch.tensor([current_phi], dtype=torch.float, device=device)
 
 
+def get_2_alternating_phi_45_degree_apart(device, last_phi=[-1, 0], update_interval=40):
+    """
+    Generates phi values that are 45 degrees apart, maintaining each phi value for 'n' iterations.
+    
+    Args:
+        device (str): The device type (e.g., 'cpu' or 'cuda').
+        last_phi (list): A list where the first element is the index of the last phi value,
+                         and the second element is the iteration count for the current phi.
+        n (int): The number of iterations to keep the same phi value.
+    
+    Returns:
+        torch.Tensor: A tensor containing the current phi value.
+    """
+    # The sequence of phi values to cycle through
+    phi_sequence = [np.deg2rad(45), np.deg2rad(315)]
+    
+    # Check if the current phi value has been used for 'n' iterations
+    if last_phi[1] >= update_interval:
+        # Increment the index to move to the next value in the sequence
+        last_phi[0] = (last_phi[0] + 1) % len(phi_sequence)
+        last_phi[1] = 0  # Reset the iteration counter for the new phi value
+    else:
+        # Increment the iteration counter for the current phi value
+        last_phi[1] += 1
+    
+    # Select the current phi value based on the updated index
+    current_phi = phi_sequence[last_phi[0]]
+    
+    print("phis", torch.tensor([current_phi], dtype=torch.float, device=device))
+    
+    # Return a tensor containing the current phi value
+    return torch.tensor([current_phi], dtype=torch.float, device=device)
+
+
+def get_4_alternating_phi_45_degree_apart(device, last_phi=[-1, 0], update_interval=15):
+    """
+    Generates phi values that are 45 degrees apart, maintaining each phi value for 'n' iterations.
+    
+    Args:
+        device (str): The device type (e.g., 'cpu' or 'cuda').
+        last_phi (list): A list where the first element is the index of the last phi value,
+                         and the second element is the iteration count for the current phi.
+        n (int): The number of iterations to keep the same phi value.
+    
+    Returns:
+        torch.Tensor: A tensor containing the current phi value.
+    """
+    # The sequence of phi values to cycle through
+    phi_sequence = [np.deg2rad(-45), np.deg2rad(135), np.deg2rad(45), np.deg2rad(-135)]
+    
+    # Check if the current phi value has been used for 'n' iterations
+    if last_phi[1] >= update_interval:
+        # Increment the index to move to the next value in the sequence
+        last_phi[0] = (last_phi[0] + 1) % len(phi_sequence)
+        last_phi[1] = 0  # Reset the iteration counter for the new phi value
+    else:
+        # Increment the iteration counter for the current phi value
+        last_phi[1] += 1
+    
+    # Select the current phi value based on the updated index
+    current_phi = phi_sequence[last_phi[0]]
+    
+    print("phis", torch.tensor([current_phi], dtype=torch.float, device=device))
+    
+    # Return a tensor containing the current phi value
+    return torch.tensor([current_phi], dtype=torch.float, device=device)
+
+
+
 def poses_helper_func(size, device, phis, thetas, radius_range=[2.5, 2.5], angle_overhead=30, angle_front=60, phi_offset=0, jitter=False, cam_z_offset=0, return_dirs=True):
     
     angle_overhead = np.deg2rad(angle_overhead)
@@ -111,19 +180,19 @@ def poses_helper_func(size, device, phis, thetas, radius_range=[2.5, 2.5], angle
     
     return poses, dirs
 
-# Global variable to store the state
-phis_state = {
-    "last_phis": None,
-    "last_update_iteration": -1,
-    "long_update_interval": 15,  # Interval for side views
-    "short_update_interval": 2,  # Interval for all other views
-    "update_interval": 10
-}
+# # Global variable to store the state
+# phis_state = {
+#     "last_phis": None,
+#     "last_update_iteration": -1,
+#     "long_update_interval": 15,  # Interval for side views
+#     "short_update_interval": 2,  # Interval for all other views
+#     "update_interval": 10
+# }
 
 def initialize_phis_state(device):
-    """ Initialize the phis state with a side view angle of 90 degrees. """
+    """ Initialize the phis state """
     global phis_state
-    phis_state["last_phis"] = torch.tensor([np.deg2rad(-135)], dtype=torch.float, device=device)
+    phis_state["last_phis"] = torch.tensor([np.deg2rad(45)], dtype=torch.float, device=device)
     phis_state["last_update_iteration"] = 0  # Assume starting at iteration 0
 
     
@@ -214,6 +283,12 @@ def poses_along_azimuth(size, device, batch_number=0, iteration=0,  radius=2.5, 
         
     elif multi_view_option == 'alternate_4_side_views_each_step_along_azimuth':
         phis = get_4_alternating_phi(device)
+        
+    elif multi_view_option == "get_4_alternating_phi_45_degree_apart":
+        phis = get_4_alternating_phi_45_degree_apart(device=device)
+        
+    elif multi_view_option == "get_2_alternating_phi_45_degree_apart":
+        phis = get_2_alternating_phi_45_degree_apart(device=device)
         
     elif multi_view_option == 'multiple_random_phi_in_batch':                       
         phi_range = np.deg2rad(phi_range)
