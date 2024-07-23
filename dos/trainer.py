@@ -196,6 +196,7 @@ class Trainer:
         visualize=False,
         iteration=None,
         num_visuals=1,
+        **kwargs,
     ):
         count = 0
         # TODO: where it should actually be done
@@ -215,6 +216,14 @@ class Trainer:
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'get_loss_dict' took {end_time - start_time} seconds to run.\n")
         
+        print(model_outputs['mask_pred'].shape, model_outputs['target_silhouette'].shape)
+        # channel_last_torch_tensor = torch.moveaxis(model_outputs['target_silhouette'][0].cpu(), 0, -1)
+        neptune_run[log_prefix + "/target_silhouettes"].append(neptune.types.File.as_image(model_outputs['target_silhouette'][0].cpu()), step=iteration)
+        # channel_last_torch_tensor = torch.moveaxis(model_outputs['render_silhouette'][0].cpu(), 0, -1)
+        neptune_run[log_prefix + "/render_silhouettes"].append(neptune.types.File.as_image(model_outputs['mask_pred'][0].cpu()), step=iteration)
+        for index in range(len(model_outputs['flows_viz'])):
+            print(model_outputs['flows'][index].shape)
+            neptune_run[log_prefix + f"/flow_{index}"].append(neptune.types.File.as_image(model_outputs['flows_viz'][index]), step=iteration)
     
         if visualize:
             

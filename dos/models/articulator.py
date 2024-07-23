@@ -35,6 +35,52 @@ from ..utils import multi_view, utils
 from ..utils import visuals as visuals_utils
 from .base import BaseModel
 
+from lang_sam import LangSAM
+from torchvision.transforms.functional import to_pil_image, to_tensor
+from ..modules.raft.core.raft import RAFT
+from ..modules.raft.core.utils import flow_viz
+
+flow_model = torch.nn.DataParallel(RAFT()).to("cuda")
+flow_model.load_state_dict(torch.load('/scratch/local/ssd/anjun/consistency/RAFT/models/raft-things.pth'))
+
+def viz(img1, img2, flo, filename):
+    img1 = img1[0].permute(1,2,0).detach().cpu().numpy() * 255
+    img2 = img2[0].permute(1,2,0).detach().cpu().numpy() * 255
+    flo = flo.permute(1,2,0).detach().cpu().numpy()
+    
+    # map flow to rgb image
+    flo = flow_viz.flow_to_image(flo)
+    img_flo = np.concatenate([img1, img2, flo], axis=0) # [0, 255]
+
+    cv2.imwrite(filename, img_flo[:, :, [2,1,0]])
+    return img_flo[:, :, [2,1,0]]
+
+ORIGINAL_BONELINE_MIDPOINTS = torch.tensor([[
+         [-8.6736e-19,  1.6966e-01,  4.5859e-01],                                                          
+         [ 3.7241e-02,  2.6587e-01,  3.6438e-01],                                                           
+         [ 2.4905e-02,  2.4998e-01,  3.2582e-01],                                                           
+         [-3.4694e-18,  2.5090e-01,  1.3072e-01],                                                           
+         [ 9.5681e-18, -1.7565e-02, -4.6908e-01],                                                           
+         [ 9.0419e-02,  1.5531e-01, -2.4764e-01],  # left front leg                                                         
+         [ 1.2550e-17,  2.4773e-01, -9.7535e-02],                                                           
+         [ 6.0715e-18,  2.5695e-01,  8.5168e-02],                                                           
+         [ 5.3383e-02, -1.7000e-01,  1.1093e-01],                                                           
+         [ 2.8553e-02,  3.5589e-02,  2.1846e-01],                                                           
+         [ 1.4559e-02,  2.3682e-01,  2.8486e-01],                                                           
+         [ 5.7312e-02, -1.5800e-01, -4.0988e-01],                                                           
+         [ 1.0146e-01,  4.7310e-02, -2.3996e-01],                                                           
+         [ 3.3610e-17,  2.4889e-01, -6.8492e-02],                                                           
+         [-5.7312e-02, -1.5800e-01, -4.0988e-01],                                                           
+         [-6.8522e-17, -5.8495e-02, -2.3671e-01],  # right front leg                                                            
+         [ 3.3610e-17,  2.4889e-01, -6.8492e-02],                                                           
+         [-4.0898e-02, -1.8964e-01,  8.1404e-02],                                                           
+         [-2.2204e-16,  1.9243e-02,  2.3030e-01],                                                           
+         [ 1.4559e-02,  2.3682e-01,  2.8486e-01]]], device='cuda:0')
+
+target_img_rgb = None
+flows = None
+langsam_model = LangSAM()
+
 class Articulator(BaseModel):
     """
     Articulator predicts instance shape parameters (instance shape) - optimisation based - predictor takes only id as input
@@ -390,8 +436,12 @@ class Articulator(BaseModel):
         
         # For Debugging purpose, save all the poses before optimisation
         self.save_all_poses_before_optimisation(pose, renderer_outputs, self.path_to_save_images)
-        
-        rendered_image = renderer_outputs["image_pred"]
+
+        mv_dream = True
+        if mv_dream:
+            rendered_image = renderer_outputs["image_pred"].repeat(4, 1, 1, 1)
+        else:
+            rendered_image = renderer_outputs["image_pred"]
         
         # GENERATING TARGET IMAGES USING DIFFUSION (SD or DF or MV-Dream)
         target_img_rgb = self.diffusion_Text_to_Target_Img.run_experiment(
@@ -408,6 +458,10 @@ class Articulator(BaseModel):
         # Inserts the new image into the final tensor
         # resizes the image to the target resolution
         target_img_rgb = torch.nn.functional.interpolate(target_img_rgb, size=renderer_outputs["image_pred"].shape[2:], mode='bilinear', align_corners=False)
+        
+        global flows
+        if True: #iteration % 15 == 0:
+            flows = []
 
         for i in range(pose.shape[0]):
             # target_img_rgb.shape is [1, 3, 256, 256]
@@ -420,6 +474,25 @@ class Articulator(BaseModel):
             # Save the image
             target_image_PIL.save(f'{dir_path}{i}_diff_pose_target_image.png', bbox_inches='tight')
         
+            # Optical flow computation
+            src = renderer_outputs["image_pred"][i].unsqueeze(0)
+            tgt = target_img_rgb[0].unsqueeze(0)
+            print(renderer_outputs["image_pred"].shape, src.shape)
+            if True: #iteration % 15 == 0:
+                # torch.Size([1, 2, 32, 32]), torch.Size([1, 2, H, W])
+                flow_low, flow_up = flow_model(image1=src, image2=tgt, iters=20, test_mode=True)
+                print(flow_low.shape)
+                flows.append(flow_up)
+        
+        if True: #iteration % 15 == 0:
+            flows = torch.cat(flows)    
+        # flows = torch.abs(flows)
+        # flows = flows > torch.quantile(flows, 0.95)
+
+        flows_viz = []
+        for flow_low in flows:
+            flows_viz.append(viz(src, tgt, flow_low, f'{i}_diff_pose_target_image.png'))
+
         print('target_img_rgb.shape', target_img_rgb.shape)
         start_time = time.time()
         # compute_correspondences for keypoint loss
@@ -445,9 +518,16 @@ class Articulator(BaseModel):
         # outputs.update(target_img_rgb)
         outputs.update(renderer_outputs)        # renderer_outputs keys are dict_keys(['image_pred', 'mask_pred', 'albedo', 'shading'])
         outputs.update(correspondences_dict)
+        outputs["target_img_rgb"] = target_img_rgb # range [0,1]
+        outputs["flows"] = flows
+        outputs["flows_viz"] = flows_viz
+        with torch.no_grad():
+            target_pil = to_pil_image(outputs["target_img_rgb"][0])
+            masks , _, _, _  = langsam_model.predict(target_pil, "cow")
+            outputs["target_silhouette"] = masks.float()
 
         ## Saving poses along the azimuth
-        self.save_pose_along_azimuth(articulated_mesh, material, self.path_to_save_images)      
+        # self.save_pose_along_azimuth(articulated_mesh, material, self.path_to_save_images, iteration)      
         
         return outputs
 
@@ -464,8 +544,13 @@ class Articulator(BaseModel):
         model_outputs["target_corres_kps"] = model_outputs["target_corres_kps"].to(self.device)
 
         loss = nn_functional.mse_loss(model_outputs["rendered_kps"], model_outputs["target_corres_kps"], reduction='mean')
-       
-        return {"loss": loss}
+        # loss = nn_functional.mse_loss(model_outputs["mask_pred"].float(), model_outputs["target_silhouette"].detach().float().to(model_outputs["mask_pred"].device))
+        # flows = model_outputs["flows"]
+        # clamped_flow = torch.clamp(input, min=torch.quantile(flows, 0.05), max=torch.quantile(flows, 0.95))
+        # flows = flows - clamped_flow
+        # loss = torch.abs(flows).sum()
+
+        return {"loss": loss, "rendered_kps": model_outputs["rendered_kps"], "target_corres_kps": model_outputs["target_corres_kps"]}
 
     def get_visuals_dict(self, model_outputs, batch, num_visuals=1):
         def _get_visuals_dict(input_dict, names):
@@ -516,13 +601,13 @@ class Articulator(BaseModel):
             
 
     ## Saving poses along the azimuth for Visualisation
-    def save_pose_along_azimuth(self, articulated_mesh, material, path_to_save_images):
+    def save_pose_along_azimuth(self, articulated_mesh, material, path_to_save_images, iteration):
         
         if self.view_option == "single_view":
             # Added for debugging purpose
             pose, direction = multi_view.poses_along_azimuth_single_view(self.num_pose_for_visual, device=self.device)
         else:
-            pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_visual, device=self.device, radius=self.random_camera_radius, phi_range=self.phi_range_for_visual, multi_view_option ='multiple_random_phi_in_batch')
+            pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_visual, device=self.device, radius=self.random_camera_radius, phi_range=self.phi_range_for_visual, multi_view_option ='multiple_random_phi_in_batch', iteration=iteration)
         
         renderer_outputs = self.renderer(
             articulated_mesh,
