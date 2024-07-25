@@ -34,6 +34,7 @@ from ..utils import mesh as mesh_utils
 from ..utils import multi_view, utils
 from ..utils import visuals as visuals_utils
 from .base import BaseModel
+from dos.nvdiffrec.render.mesh import make_mesh
 
 class Articulator(BaseModel):
     """
@@ -53,12 +54,15 @@ class Articulator(BaseModel):
         enable_texture_predictor=True,
         texture_predictor=None,
         bones_predictor=None,
+        gltf_skin=None,
         articulation_predictor=None,
         renderer=None,
         shape_template_path=None,
         view_option = "multi_view_azimu",
         fit_shape_template_inside_unit_cube=False,
+        use_gt_target_img=False,
         diffusion_Text_to_Target_Img=None,
+        sds_every_n_iter=1,
         device = "cuda",
         correspond = None,
         # TODO: Create a view sampler class to encapsulate the view sampling logic and settings
@@ -89,6 +93,7 @@ class Articulator(BaseModel):
         self.bones_predictor = (
             bones_predictor if bones_predictor is not None else BonesEstimator()
         )
+        self.gltf_skin = gltf_skin
         # Articulation predictor
         self.articulation_predictor = (articulation_predictor if articulation_predictor else ArticulationPredictor())
         self.renderer = renderer if renderer is not None else Renderer()
@@ -98,8 +103,11 @@ class Articulator(BaseModel):
             self.shape_template = self._load_shape_template(shape_template_path, fit_inside_unit_cube=fit_shape_template_inside_unit_cube)    # False if self.view_option == "single_view" else True
         else:
             self.shape_template = None
+
+        self.use_gt_target_img = use_gt_target_img
         
         self.diffusion_Text_to_Target_Img = diffusion_Text_to_Target_Img if diffusion_Text_to_Target_Img is not None else DiffusionForTargetImg()
+        self.sds_every_n_iter = sds_every_n_iter
         self.device = device
         self.correspond = (correspond if correspond else ComputeCorrespond())
         self.random_camera_radius = random_camera_radius    # 1 if self.view_option == "single_view" else 2.5
@@ -275,13 +283,13 @@ class Articulator(BaseModel):
         #     file.write(f"The 'bones_predictor' took {end_time - start_time} seconds to run.\n")
                 
         print(f"The bones_predictor function took {end_time - start_time} seconds to run.")
-        
-        batch_size, num_bones = bones_predictor_outputs["bones_pred"].shape[:2]
+
+        batch_size, _ = bones_predictor_outputs["bones_pred"].shape[:2]
         
         if self.bones_rotations == "bones_rotations":
             start_time = time.time()
             # BONE ROTATIONS
-            bones_rotations = self.articulation_predictor(batch, num_bones)
+            bones_rotations = self.articulation_predictor(batch)
             end_time = time.time()  # Record the end time
             # with open('log.txt', 'a') as file:
             #     file.write(f"The 'articulation_predictor' took {end_time - start_time} seconds to run.\n")
@@ -289,7 +297,7 @@ class Articulator(BaseModel):
             
         elif self.bones_rotations == "NO_bones_rotations":
             # NO BONE ROTATIONS
-            bones_rotations = torch.zeros(batch_size, num_bones, 3, device=mesh.v_pos.device)
+            bones_rotations = torch.zeros(batch_size, 47, 3, device=mesh.v_pos.device)
         
         elif self.bones_rotations == "DUMMY_bones_rotations":
             # DUMMY BONE ROTATIONS - pertrub the bones rotations (only to test the implementation)
@@ -298,14 +306,23 @@ class Articulator(BaseModel):
     
         start_time = time.time()  # Record the start time
         # apply articulation to mesh
-        articulated_mesh, aux = mesh_skinning(
-            mesh,
-            bones_predictor_outputs["bones_pred"],
-            bones_predictor_outputs["kinematic_chain"],
-            bones_rotations,
-            bones_predictor_outputs["skinnig_weights"],
-            output_posed_bones=True,
-        )
+        if self.gltf_skin is not None:
+            articulated_verts, skin_aux = self.gltf_skin.skin_mesh_with_rotations(mesh.v_pos, bones_rotations)
+            articulated_mesh = make_mesh(
+                articulated_verts, mesh.t_pos_idx, mesh.v_tex, mesh.t_tex_idx, mesh.material
+            )
+            posed_bones = None
+        else:
+            articulated_mesh, skin_aux = mesh_skinning(
+                mesh,
+                bones_predictor_outputs["bones_pred"],
+                bones_predictor_outputs["kinematic_chain"],
+                bones_rotations,
+                bones_predictor_outputs["skinnig_weights"],
+                output_posed_bones=True,
+            )
+            posed_bones = skin_aux["posed_bones"]
+            
         end_time = time.time()  # Record the end time
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'mesh_skinning' took {end_time - start_time} seconds to run.\n")
@@ -394,12 +411,19 @@ class Articulator(BaseModel):
         rendered_image = renderer_outputs["image_pred"]
         
         # GENERATING TARGET IMAGES USING DIFFUSION (SD or DF or MV-Dream)
-        target_img_rgb = self.diffusion_Text_to_Target_Img.run_experiment(
-            input_image=rendered_image,
-            image_fr_path=False,
-            direction = direction,
-            c2w = w2c.permute(0, 2, 1),     # Transpose the 3D matrix
-        )
+        if self.use_gt_target_img:
+            target_img_rgb = batch["image"]
+        else:
+            # if self._current_iteration % self.sds_every_n_iter == 0 or self._target_img_rgb is None:
+            target_img_rgb = self.diffusion_Text_to_Target_Img.run_experiment(
+                input_image=renderer_outputs["image_pred"].detach(),
+                image_fr_path=False,
+                direction = direction,
+                c2w = w2c.permute(0, 2, 1),     # Transpose the 3D matrix
+            )
+            
+            #     self._target_img_rgb = target_img_rgb
+            # target_img_rgb = self._target_img_rgb
         
         # # Inserts the new image into a dictionary
         # # all_generated_target_img["target_img_NO_kps"].shape is [1, 3, 256, 256]
@@ -425,9 +449,9 @@ class Articulator(BaseModel):
         # compute_correspondences for keypoint loss
         correspondences_dict = self.compute_correspondences(
             articulated_mesh,
-            mvp,                                      # batch["pose"].shape is torch.Size([Batch size, 12])
+            mvp,                   # mvp,               # batch["pose"].shape is torch.Size([Batch size, 12])
             self.renderer,
-            aux["posed_bones"],                        # predicted articulated bones
+            posed_bones,                        # predicted articulated bones
             #bones_predictor_outputs["bones_pred"],    # this is a rest pose    # bones_predictor_outputs["bones_pred"].shape is torch.Size([4, 20, 2, 3]), 4 is batch size, 20 is number of bones, 2 are the two endpoints of the bones and 3 means the 3D point defining one of the end points of the line segment in 3D that defines the bone 
             renderer_outputs["mask_pred"],
             renderer_outputs["image_pred"],            # renderer_outputs["image_pred"].shape is torch.Size([4, 3, 256, 256]), 4 is batch size, 3 is RGB channels, 256 is image resolution
@@ -482,6 +506,12 @@ class Articulator(BaseModel):
         )
 
         # TODO: render also rest pose
+
+        # Log skinned mesh
+        if self.gltf_skin is not None:
+            visuals_dict["skinned_mesh"] = self.gltf_skin.plot_skinned_mesh_3d(
+                model_outputs["articulated_mesh"].v_pos[0].detach().cpu(), 
+                model_outputs["skin_aux"]["global_joint_transforms"][0].detach().cpu())
 
         return visuals_dict
     
@@ -889,6 +919,8 @@ class Articulator(BaseModel):
 
         return sampled_points
 
+    def pre_forward_callback(self, iteration):
+        self._current_iteration = iteration
 
     def save_cyc_consi_check_images(self, cycle_consi_image_with_kps, rendered_image_with_kps_cyc_check, target_image_with_kps_cyc_check, index):
         # # Set the background color to grey
