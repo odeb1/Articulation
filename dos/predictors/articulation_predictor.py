@@ -15,12 +15,23 @@ class ArticulationPredictor(nn.Module):
         # degree = 10 #(0.17 rad)
         rad = self.degree * (math.pi/180)
         
-        # Each bone_rotation is a 3D vector, 3 corresponds to x, y z coordinates
+        # Bone rotations are represented as quaternions, which have 4 components.
         # Using nn.Embedding to act as a lookup table
-        self.bones_rotations = nn.Embedding(size_dataset, num_bones * 3) # Shape is torch.Size([49, 60]) 
+        self.bones_rotations = nn.Embedding(size_dataset, num_bones * 4) # Shape is torch.Size([49, 60]) 
+        # Resizing the bones_rotations to the shape (size_dataset, num_bones, 4)
+        self.bones_rotations.weight.data = self.bones_rotations.weight.data.view(size_dataset, num_bones, 4)
+        # Initialize with small values to prevent NaNs in quaternion calculations
+        self.bones_rotations.weight.data *= 1e-6 
+        # Set the first component of each quaternion to 1 for the identity quaternion
+        self.bones_rotations.weight.data[:, :, 0] = 1.0
+        # Resize back
+        self.bones_rotations.weight.data = self.bones_rotations.weight.data.view(size_dataset, num_bones * 4)
+
+        self.num_bones = num_bones
         
-        # Initialize the embedding weights to zeros
-        self.bones_rotations.weight.data *= 0.0
+        # Initializing the name to index dictionary
+        self.name_to_index = {}
+        
         
         # Initialize the embedding weights to zeros
         # self.bones_rotations.weight.data.zero_()
@@ -30,9 +41,7 @@ class ArticulationPredictor(nn.Module):
         
         # nn.init.uniform_(self.bones_rotations.weight, -rad, rad)
         
-        # Initializing the name to index dictionary
-        self.name_to_index = {}
-        
+
             
     def get_sample_index(self, names, device):
         # Sort names for consistent ordering
@@ -48,7 +57,7 @@ class ArticulationPredictor(nn.Module):
         return torch.tensor(indices, device=device)
 
 
-    def forward(self, batch, num_bones):
+    def forward(self, batch):
         # Extracting index of the samples from the batch using the sample names
         
         # degrees to radians
@@ -61,9 +70,12 @@ class ArticulationPredictor(nn.Module):
         # The embedding layer processes the batch of indices and retrieve the corresponding 
         # bones_rotations values for each sample in the batch
         bones_rotations = self.bones_rotations(sample_index)
-        bones_rotations = bones_rotations.view(-1, num_bones, 3)
+        bones_rotations = bones_rotations.view(-1, self.num_bones, 4)
         
-        # Applying tanh to ensure the values are between -1 and 1
-        bones_rotations = torch.tanh(bones_rotations) * rad
+        # # Applying tanh to ensure the values are between -1 and 1
+        # bones_rotations = torch.tanh(bones_rotations) * rad
+
+        # Normalize the quaternion
+        bones_rotations = nn.functional.normalize(bones_rotations, p=2, dim=2)
 
         return bones_rotations
