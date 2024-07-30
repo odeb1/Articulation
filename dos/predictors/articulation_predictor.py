@@ -8,7 +8,7 @@ import torch.nn as nn
 
 class ArticulationPredictor(nn.Module):
     
-    def __init__(self, size_dataset, num_bones, degree):
+    def __init__(self, size_dataset, num_bones, degree=60):
         super(ArticulationPredictor, self).__init__()
         
         self.degree = degree

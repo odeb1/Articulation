@@ -78,7 +78,7 @@ model:
     _target_: dos.predictors.articulation_predictor.ArticulationPredictor  # Class Name
     size_dataset: 49
     num_bones: 47 # GLTF has 47 bones
-    degree: 60
+    # degree: 60
     
   renderer:   # variable Name
     _target_: dos.modules.renderer.Renderer # Class Name
