@@ -2,7 +2,7 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset       # Class Name
-  root_dir: /work/oishideb/cow_sd_generated_3  # /0_poses_target_img_NO_KPs.png
+  root_dir: /work/oishideb/cow_sd_generated_1  # /0_poses_target_img_NO_KPs.png
   # root_dir: /work/oishideb/cow_sd_generated_2   # Fixed cow walking image 315 degree
   # root_dir: /work/oishideb/cow_sd_generated_3   # Fixed head bend cow image
   # root_dir: /work/oishideb/cow_sd_generated_4   # Fixed cow walking image 45 degree
@@ -20,7 +20,7 @@ train_dataset:
       suffix: _camera.txt
 
 model:
-  _target_: dos.models.articulator_nelder_mead.Articulator  # Other option is articulator_grad_based
+  _target_: dos.models.articulator_grad_based.Articulator  # Other option is articulator_grad_based; articulator_nelder_mead
   bones_predictor:
     _target_: dos.components.skinning.bones_estimation.BonesEstimator
     num_body_bones: 8
@@ -32,19 +32,21 @@ model:
     _target_: dos.components.skinning.gltf_skinning.Skin
     gltf_file_path: /scratch/shared/beegfs/tomj/projects/articulator/data/synth_animals/shape_templates/cow_female-rd/Cow-OBJ-v01/Cow_Highpoly.gltf
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2187_Cow_new_gltf_head_bend_fixed_90degree
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2407_Cow_back_view
+  target_image_path: /users/oishideb/oishideb/cow_sd_generated_1/000001_rgb.png
+  superAnimal_kp_ON: True
   num_pose_for_optim: 1
   num_pose_for_visual: 20
-  num_sample_bone_line: 5  # 
-  num_sample_farthest_points: 250  # No. of Keypoints to select randomly 
-  mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
+  num_sample_bone_line: 5  #
+  num_sample_farthest_points: 250 # No. of Keypoints to select randomly 
+  mode_kps_selection: "kps_based_on_superAnimal" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
   shape_template_path: /scratch/shared/beegfs/tomj/projects/articulator/data/synth_animals/shape_templates/cow_female-rd/Cow-OBJ-v01/Cow_Highpoly.obj
   enable_texture_predictor: False
 
   view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"
   random_camera_radius: 2.5 # for single_view: 1; for multi-view: 2.5
   fit_shape_template_inside_unit_cube: True # for single_view: False; for multi-view: True
-  phi_range_for_optim:  [90, 90] # [0, 360] # ; For one sideview [90,90]
+  phi_range_for_optim:  [135, 135] # [0, 360] # ; For one sideview [90,90]; For back view [135, 135]
   phi_range_for_visual: [0, 360] # 
   
   # Options are
@@ -66,7 +68,7 @@ model:
   cyc_check_img_save: True # This saves all the images with Cycle Consistency Check
   # seed: 60
   target_image_fixed: True
-  save_individual_img: True    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
+  save_individual_img: False    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
   
   correspond:
     _target_: dos.components.fuse.compute_correspond.ComputeCorrespond
@@ -88,7 +90,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2187_Cow_new_gltf_head_bend_fixed_90degree/sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2407_Cow_back_view/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     prompts_source: '' #.The photo should have a grey background.' 
@@ -99,7 +101,7 @@ model:
     lr: 0.1  # For DeepFloyd+SDS
     lr_l2: 0.1  # For SD+SDS  1e4
     # seed: 8 # 6
-    num_inference_steps: 50
+    num_inference_steps: 1
     guidance_scale: 50
     dds: False
     select_diffusion_option: 'sd' # Options are sd, sd_XL, df, sd_dds_loss, mv_dream  # by default is sds loss
@@ -112,21 +114,21 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2187_Cow_new_gltf_head_bend_fixed_90degree
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2407_Cow_back_view
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
 save_each_iteration: True
 evaluate_the_model: False
-save_individual_img: True    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
+save_individual_img: False    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
 
 device: cuda:0
 
 # resume: True
 
 # learning_rate: 1e-9  # tried with 0.01, 0.5, 0.9, 1;   # 1e-4   # DOS_1432
-learning_rate: 0.001 # 0.0005          
+learning_rate: 0.0007 # 0.0005          
 # for debugging
-num_iterations: 150
+num_iterations: 15
 num_vis_iterations: 1
 num_eval_iterations: 10
 save_checkpoint_freq: 50

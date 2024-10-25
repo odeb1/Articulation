@@ -376,6 +376,7 @@ class Trainer:
             if self.save_each_iteration:
                 self.model.save_img_each_iteration(model_outputs, iteration, index_of_image, self.path_to_save_img_per_iteration)
             
+            
             # Backpropagation and optimization step
             optimizer.zero_grad()
             if loss.requires_grad:

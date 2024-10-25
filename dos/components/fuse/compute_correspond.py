@@ -340,12 +340,12 @@ class ComputeCorrespond:
                 target_image_PIL = torchvision.transforms.functional.to_pil_image(img2_tensor[index])
                 target_image_PIL = resize(target_image_PIL, 840, resize=True, to_pil=True)
                 
-                rendered_image_with_kps = draw_correspondences_1_image(img1_kps[index], rendered_image_PIL)
+                rendered_image_with_kps = draw_correspondences_1_image(img1_kps[index].detach().cpu(), rendered_image_PIL)
                 # rendered_image_with_kps.savefig(f'{index}_debug_rendered_img_with_KPs.png', bbox_inches='tight')
             
-                target_image_with_kps = draw_correspondences_1_image(kps_1_to_2, target_image_PIL)
+                target_image_with_kps = draw_correspondences_1_image(kps_1_to_2.detach().cpu(), target_image_PIL)
                 
-                rendered_target_image_with_wo_kps = draw_correspondences_combined(img1_kps[index], kps_1_to_2, rendered_image_PIL, target_image_PIL)
+                rendered_target_image_with_wo_kps = draw_correspondences_combined(img1_kps[index].detach().cpu(), kps_1_to_2.detach().cpu(), rendered_image_PIL, target_image_PIL)
 
                 rendered_image_with_kps_list.append(rendered_image_with_kps)
                 rendered_image_NO_kps_list.append(rendered_image_PIL)

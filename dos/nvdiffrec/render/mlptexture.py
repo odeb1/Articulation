@@ -8,7 +8,7 @@
 # its affiliates is strictly prohibited.
 
 import torch
-import tinycudann as tcnn
+# import tinycudann as tcnn
 import numpy as np
 
 #######################################################################################################################################################

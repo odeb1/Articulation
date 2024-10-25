@@ -2,7 +2,7 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset       # Class Name
-  root_dir: /work/oishideb/horse_sd_generated_0  
+  root_dir: /work/oishideb/horse_sd_generated_3_new_mvDream 
   attributes:
     - name: image
       suffix: _rgb.png
@@ -14,7 +14,7 @@ train_dataset:
       suffix: _camera.txt
 
 model:
-  _target_: dos.models.articulator.Articulator 
+  _target_: dos.models.articulator_grad_based.Articulator  # Other option is articulator_grad_based; articulator_nelder_mead
   bones_predictor:
     _target_: dos.components.skinning.bones_estimation.BonesEstimator
     num_body_bones: 8
@@ -22,12 +22,16 @@ model:
     body_bones_type: z_minmax_y+
     temperature: 0.05
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2130_Horse_Rest_Pose
+  gltf_skin:
+    _target_: dos.components.skinning.gltf_skinning.Skin
+    gltf_file_path: /work/oishideb/HorseMaleRD.gltf
+
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2345_Horse
   num_pose_for_optim: 1
   num_pose_for_visual: 30
   num_sample_bone_line: 5  #
   num_sample_farthest_points: 150
-  mode_kps_selection: "kps_fr_sample_on_bone_line" # Options are "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
+  mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
   shape_template_path: /work/oishideb/from_nfs2/animal_assets/uploads-files-2390590-Horse_Family_v01/Horse_HighPoly.obj
   enable_texture_predictor: False
   
@@ -47,7 +51,7 @@ model:
   # "multiple_random_phi_in_batch"      # if selected this, then specify the no. here - "num_pose_for_optim"
   # "2_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim"
   # "guidance_and_rand_views_in_batch"  # if selected this, then specify the no. here - "num_pose_for_optim" as 2
-  multi_view_optimise_option: "get_2_alternating_phi_45_degree_apart"
+  multi_view_optimise_option: "multiple_random_phi_in_batch"
 
   bones_rotations: "bones_rotations" # Options are "bones_rotations"; "DUMMY_bones_rotations"; "NO_bones_rotations"
   using_pil_object: False
@@ -55,7 +59,7 @@ model:
   cyc_consi_check_dist_threshold: 20 # 15
   cyc_check_img_save: True # This saves all the images with Cycle Consistency Check
   # seed: 100
-  target_image_fixed: False
+  target_image_fixed: True
   save_individual_img: False    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
   
   correspond:
@@ -78,7 +82,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2130_Horse_Rest_Pose/sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2345_Horse/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     # prompts: 'A photograph of a single cow running very fast, back view.' #.The photo should have a grey background.' # DOS-1338  opti multi_view_azimu, GS20, Num_Infe50
@@ -105,7 +109,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2130_Horse_Rest_Pose
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2345_Horse
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
 save_each_iteration: True
@@ -119,7 +123,7 @@ device: cuda:0
 # learning_rate: 1e-9  # tried with 0.01, 0.5, 0.9, 1;   # 1e-4   # DOS_1432
 learning_rate: 0.002          # DOS_1433
 # for debugging
-num_iterations: 60
+num_iterations: 40
 num_vis_iterations: 1
 num_eval_iterations: 10
 save_checkpoint_freq: 50

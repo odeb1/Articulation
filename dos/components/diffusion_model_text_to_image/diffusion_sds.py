@@ -23,7 +23,7 @@ import torch.optim
 from dos.components.diffusion_model_text_to_image.deep_floyd import DeepFloyd
 from dos.components.diffusion_model_text_to_image.sd import (StableDiffusion,
                                                              seed_everything)
-from dos.components.diffusion_model_text_to_image.mv_dream import MultiviewDiffusionGuidance
+# from dos.components.diffusion_model_text_to_image.mv_dream import MultiviewDiffusionGuidance
 from dos.components.diffusion_model_text_to_image.sd_dds_loss import \
     StableDiffusionDDSLoss
 from dos.components.diffusion_model_text_to_image.sd_XL import \

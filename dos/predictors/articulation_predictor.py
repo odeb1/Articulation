@@ -11,13 +11,13 @@ class ArticulationPredictor(nn.Module):
     def __init__(self, size_dataset, num_bones, degree=60):
         super(ArticulationPredictor, self).__init__()
         
-        self.degree = degree
+        # self.degree = degree
         # degree = 10 #(0.17 rad)
-        rad = self.degree * (math.pi/180)
+        # rad = self.degree * (math.pi/180)
         
         # Bone rotations are represented as quaternions, which have 4 components.
         # Using nn.Embedding to act as a lookup table
-        self.bones_rotations = nn.Embedding(size_dataset, num_bones * 4) # Shape is torch.Size([49, 60]) 
+        self.bones_rotations = nn.Embedding(size_dataset, num_bones * 4) # Shape is torch.Size([n, 3*47]) 
         # Resizing the bones_rotations to the shape (size_dataset, num_bones, 4)
         self.bones_rotations.weight.data = self.bones_rotations.weight.data.view(size_dataset, num_bones, 4)
         # Initialize with small values to prevent NaNs in quaternion calculations
@@ -61,7 +61,7 @@ class ArticulationPredictor(nn.Module):
         # Extracting index of the samples from the batch using the sample names
         
         # degrees to radians
-        rad = self.degree * (math.pi/180)
+        # rad = self.degree * (math.pi/180)
         
         sample_names = batch['name']
         

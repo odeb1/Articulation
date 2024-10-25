@@ -384,9 +384,10 @@ class Articulator(BaseModel):
     def callbackF(self, Xi):
         score = -self.gradient_free_optim_eval(Xi)
         self.similarity_scores.append(score)
+        print(f"Bone_Rotation: {Xi}")
         print(f"Iteration {self.iteration}: Similarity Score = {score}")
 
-        # Save intermediate rendered images for visualization**
+        # Save intermediate rendered images for visualization
         self.save_intermediate_images = True
         if self.save_intermediate_images:
             bones_rotations_tensor = torch.tensor(Xi, dtype=torch.float32).to(self.device)
