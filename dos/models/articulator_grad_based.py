@@ -8,6 +8,7 @@ import timeit
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import matplotlib.animation as animation
 import numpy as np
 import torch
 import torch.nn.functional as nn_functional
@@ -63,7 +64,10 @@ class Articulator(BaseModel):
         num_pose_for_optim,
         num_pose_for_visual,
         num_sample_bone_line,
-        target_image_path,
+        target_image_folder,
+        super_Ani_head_kps_ON,
+        super_Ani_body_kps_ON,
+        all_4_legs_kps_ON,
         superAnimal_kp_ON = True,
         num_sample_farthest_points = 100,
         mode_kps_selection = "kps_fr_sample_on_bone_line",
@@ -94,6 +98,7 @@ class Articulator(BaseModel):
         target_image_fixed = False,
         save_individual_img = False,
         multi_view_optimise_option = 'random_phi_each_step_along_azimuth',
+        pose_update_interval = 20,
         # nelder_mead_optim = None,
         
     ):
@@ -140,9 +145,12 @@ class Articulator(BaseModel):
         self.save_individual_img = save_individual_img
         self.multi_view_optimise_option = multi_view_optimise_option
         # self.nelder_mead_optim = nelder_mead_optim if nelder_mead_optim is not None else NelderMeadOptim()
-        self.target_image_path = target_image_path
+        self.target_image_folder = target_image_folder
         self.superAnimal_kp_ON = superAnimal_kp_ON
-        
+        self.super_Ani_head_kps_ON = super_Ani_head_kps_ON
+        self.super_Ani_body_kps_ON = super_Ani_body_kps_ON
+        self.all_4_legs_kps_ON = all_4_legs_kps_ON
+        self.pose_update_interval = pose_update_interval
 
     def _load_shape_template(self, shape_template_path, fit_inside_unit_cube=False):
         mesh = load_mesh(shape_template_path)
@@ -268,6 +276,7 @@ class Articulator(BaseModel):
                         # SAVE CYCLE CONSISTENCY IMAGES
                         self.save_cyc_consi_check_images(cycle_consi_image_with_kps_list[index], rendered_image_with_kps_cyc_check, target_image_with_kps_cyc_check, index)
         
+        superAni_render_target_combined_fig = self.combine_and_save_matplot_figures(superAni_rendered_img_with_kps, superAni_target_img_with_kps, index=00)
             
         output_dict = {
         "rendered_kps": kps_img_resolu,                     
@@ -284,7 +293,8 @@ class Articulator(BaseModel):
         "rendered_img_coordinates_tensor_superAni": rendered_img_coordinates_tensor_superAni,
         "target_img_coordinates_tensor_superAni": target_img_coordinates_tensor_superAni,
         "superAni_rendered_img_with_kps": superAni_rendered_img_with_kps,
-        "superAni_target_img_with_kps": superAni_target_img_with_kps
+        "superAni_target_img_with_kps": superAni_target_img_with_kps,
+        "superAni_render_target_combined_fig": superAni_render_target_combined_fig,
         }        
         
         ## Saving multiple random poses with and without keypoints visualisation
@@ -325,7 +335,8 @@ class Articulator(BaseModel):
             
         elif self.bones_rotations == "NO_bones_rotations":
             # NO BONE ROTATIONS
-            bones_rotations = torch.zeros(batch_size, 47, 3, device=mesh.v_pos.device)
+            # bones_rotations = torch.zeros(batch_size, 47, 4, device=mesh.v_pos.device)
+            bones_rotations = torch.zeros(batch_size, bones_rotations.shape[1], 4, device=mesh.v_pos.device)
         
         elif self.bones_rotations == "DUMMY_bones_rotations":
             # DUMMY BONE ROTATIONS - pertrub the bones rotations (only to test the implementation)
@@ -335,6 +346,13 @@ class Articulator(BaseModel):
         start_time = time.time()  # Record the start time
         # apply articulation to mesh
         if self.gltf_skin is not None:
+            
+            # bones_rotations.shape is [1, 46, 4] for horse
+            # mesh.v_pos.shape is [1, 6468, 3] for horse .gltf file mentions 7136 vertices.
+            
+            # bones_rotations.shape is [1, 47, 4] for cow
+            # mesh.v_pos.shape is [1, 7483, 3] for cow
+            # import ipdb; ipdb.set_trace()
             articulated_verts, skin_aux = self.gltf_skin.skin_mesh_with_rotations(mesh.v_pos, bones_rotations)
             articulated_mesh = make_mesh(
                 articulated_verts, mesh.t_pos_idx, mesh.v_tex, mesh.t_tex_idx, mesh.material
@@ -388,7 +406,7 @@ class Articulator(BaseModel):
                 
             elif self.view_option == "multi_view_azimu":
                
-                pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_optim, self.device, batch_number=num_batches, iteration=iteration, radius=self.random_camera_radius, phi_range=self.phi_range_for_optim, multi_view_option = self.multi_view_optimise_option)
+                pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_optim, self.device, batch_number=num_batches, iteration=iteration, radius=self.random_camera_radius, phi_range=self.phi_range_for_optim, multi_view_option = self.multi_view_optimise_option, update_interval=self.pose_update_interval)
         else:
             pose=batch["pose"]
         
@@ -451,9 +469,42 @@ class Articulator(BaseModel):
         
         
         # # ------------------------------------------------
-        # # TARGET IMAGE
-        target_img_coordinates_tensor_superAni, superAni_target_img_with_kps, image_name1 = self.get_superAni_kps_and_image(self.target_image_path)
+        # # TARGET IMAGE - SUPER ANIMAL
         
+        # # Open the original image - for single image
+        # image = Image.open(self.target_image_folder)
+        # # Resize the image to 840x840
+        # resized_image = image.resize((840, 840), Image.LANCZOS)
+        # # Save the resized image
+        # resized_image_path = self.target_image_folder # Set a path to save the resized image
+        # resized_image.save(resized_image_path)
+        # target_img_coordinates_tensor_superAni, superAni_target_img_with_kps, image_name1 = self.get_superAni_kps_and_image(resized_image_path)
+        
+        
+        # # Loop through each file in the target image folder
+        # for filename in os.listdir(self.target_image_folder):
+        #     # Construct the full path to the image file
+        #     image_path = os.path.join(self.target_image_folder, filename)
+
+        #     # Check if the file is an image (e.g., .jpg, .png)
+        #     if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        #         # Open the original image
+        #         image = Image.open(image_path)
+
+        #         # Resize the image to 840x840
+        #         resized_image = image.resize((840, 840), Image.LANCZOS)
+
+        #         # Save the resized image (overwrite the original or specify a new path)
+        #         resized_image_path = os.path.join(self.target_image_folder, f"resized_{filename}")
+        #         resized_image.save(resized_image_path)
+
+        #         # Process the resized image with get_superAni_kps_and_image
+        #         target_img_coordinates_tensor_superAni, superAni_target_img_with_kps, image_name1 = self.get_superAni_kps_and_image(resized_image_path)
+
+        
+        
+        
+        target_img_coordinates_tensor_superAni, superAni_target_img_with_kps = self.process_target_images_folder(iteration, self.pose_update_interval)
         
         # # Inserts the new image into a dictionary
         # # all_generated_target_img["target_img_NO_kps"].shape is [1, 3, 256, 256]
@@ -483,7 +534,6 @@ class Articulator(BaseModel):
             rendered_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, image_name2 = self.get_superAni_kps_and_image(rendered_image_path)
             
             
-            
         
         # print('target_img_rgb.shape', target_img_rgb.shape)
         start_time = time.time()
@@ -509,6 +559,8 @@ class Articulator(BaseModel):
         outputs = {}
         # TODO: probaly rename the ouputs of the renderer
         # outputs.update(target_img_rgb)
+        
+        
         outputs.update(renderer_outputs)        # renderer_outputs keys are dict_keys(['image_pred', 'mask_pred', 'albedo', 'shading'])
         outputs.update(correspondences_dict)
         ## Saving poses along the azimuth
@@ -604,7 +656,7 @@ class Articulator(BaseModel):
             # Added for debugging purpose
             pose, direction = multi_view.poses_along_azimuth_single_view(self.num_pose_for_visual, device=self.device)
         else:
-            pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_visual, device=self.device, radius=self.random_camera_radius, phi_range=self.phi_range_for_visual, multi_view_option ='multiple_random_phi_in_batch')
+            pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_visual, device=self.device, radius=self.random_camera_radius, phi_range=self.phi_range_for_visual, multi_view_option ='multiple_random_phi_in_batch', update_interval=self.pose_update_interval)
         
         renderer_outputs = self.renderer(
             articulated_mesh,
@@ -666,7 +718,7 @@ class Articulator(BaseModel):
                 os.makedirs(dir_path, exist_ok=True)
                 model_outputs["superAni_rendered_img_with_kps"].savefig(f'{dir_path}/{iteration}_superAni_rendered_image_with_kps_list.png', bbox_inches='tight', pad_inches=0)
             
-                self.combine_and_save_matplot_figures(model_outputs["superAni_rendered_img_with_kps"], model_outputs["superAni_target_img_with_kps"], iteration)
+                superAni_render_target_combined_fig = self.combine_and_save_matplot_figures(model_outputs["superAni_rendered_img_with_kps"], model_outputs["superAni_target_img_with_kps"], iteration)
             
             if (self.cyc_consi_check_switch & self.cyc_check_img_save):
                 dir_path = f'{path_to_save_img_per_iteration}/cyc_check_combined_image_list/{index}_pose'
@@ -728,38 +780,7 @@ class Articulator(BaseModel):
         
     
     
-    # Keypoint selection based on SuperAnimal keypoints
-    def kps_based_on_superAnimal_old(self, bones, mvp, articulated_mesh, visible_vertices, num_sample_bone_line, eroded_mask, rendered_img_coordinates_tensor_superAni):
-            
-        start_time = time.time()
-        # closest_midpts = self.closest_visible_points(bones_midpts_in_3D, articulated_mesh.v_pos, visible_vertices) # , eroded_mask)
-        
-        closest_pts = self.closest_visible_points_in_2D(rendered_img_coordinates_tensor_superAni, articulated_mesh.v_pos, visible_vertices) # , eroded_mask)
-        
-        end_time = time.time()  # Record the end time
-        # with open('log.txt', 'a') as file:
-        #     file.write(f"The 'closest_visible_points' took {end_time - start_time} seconds to run.\n")
-        print(f"The closest_visible_points function took {end_time - start_time} seconds to run.")
-        
-        closest_pts = closest_pts.to(mvp.device)
-        
-        ## shape of bones_closest_pts_2D_proj is ([Batch-size, 20, 2]) PROJECTION TO 2D
-        # bones_closest_pts_projected_in_2D_all_kp20 = geometry_utils.project_points(closest_pts, mvp)
-        
-        # ADDED next 3 lines: Convert to Pixel Coordinates of the mask
-        # pixel_projected_visible_v_in_2D = (bones_closest_pts_projected_in_2D_all_kp20 + 1) * eroded_mask.size(1)/2
-        
-        # pixel_projected_visible_v_in_2D = (closest_pts + 1) * eroded_mask.size(1)/2
-        
-        # kps_img_resolu = (closest_pts/256) * 840
-        
-        kps_img_resolu = (closest_pts) * 256
-        
-        # return pixel_projected_visible_v_in_2D
-        return kps_img_resolu
-        
-        
-        
+    
         # COMMENTING OUT THIS PART -------------
         # start_time = time.time()
         # ## get_vertices_inside_mask
@@ -1210,7 +1231,7 @@ class Articulator(BaseModel):
         combined_image.save(os.path.join(out_folder, f"{index}_rendered_and_target_img.png"))
         
 
-    def combine_and_save_matplot_figures(self, fig1, fig2, index):
+    def combine_and_save_matplot_figures(self, fig1, fig2, index=0):
         # Create output folder if it doesn't exist
         out_folder=f'{self.path_to_save_images}/superanimal_prediction/'
         if not os.path.exists(out_folder):
@@ -1250,6 +1271,8 @@ class Articulator(BaseModel):
         plt.close(fig1)
         plt.close(fig2)
         plt.close(combined_fig)
+        
+        return combined_fig
 
     
     def get_superAni_kps_and_image(self, image_path):    
@@ -1271,7 +1294,8 @@ class Articulator(BaseModel):
         for image_path, prediction in predictions_target_img.items():
             frame = auxfun_videos.imread(str(image_path), mode="skimage")
             fig, ax = plt.subplots()
-            ax.imshow(frame)
+            # origin='upper' ensures top-left corner is (0,0) for orientation consistency
+            ax.imshow(frame, origin='upper')
             # Remove the x-,y-axis values (ticks and labels)
             ax.axis('off')
             image_coords = []
@@ -1282,27 +1306,130 @@ class Articulator(BaseModel):
                 mask = confidence > 0.0
                 x = x[mask]
                 y = y[mask]
-                ax.scatter(x, y, c=np.arange(len(x)), cmap=cmap)
+                
+                # ax.scatter(x, y, c=np.arange(len(x)), cmap=cmap)
                 # Store the (x, y) pairs for this pose
                 coords = torch.stack((torch.tensor(x), torch.tensor(y)), dim=1)  # Combine x and y as pairs
                 image_coords.append(coords)
-            save_ape_image = True
-            if save_ape_image:    
-                image_name1 = image_path.split(os.sep)[-1]
-                out_folder = f'{self.path_to_save_images}/superanimal_prediction/'
+        
+               
+        # print("image_coords[0] shape", image_coords[0].shape)    
+        # Group Bodyparts together
+        # image_coords[0] is a tensor of shape [39, 2]
+        
+        bodypart_dict = { 
+            "face": image_coords[0][5:15],                         # remove the jaw kps
+            "neck": image_coords[0][15:19],                       # 16th to 19th values
+            "body": torch.cat((image_coords[0][19:24], image_coords[0][36:39])),  # 20th to 24th and 37th to 39th values
+            "front_left_leg": image_coords[0][24:27],             # 25th to 27th values
+            "front_right_leg": image_coords[0][27:30],            # 28th to 30th values
+            "back_left_leg": torch.cat((image_coords[0][30:32], image_coords[0][33:34])),  # 31st, 32nd, and 34th values
+            "back_right_leg": torch.cat((image_coords[0][32:33], image_coords[0][34:36]))  # 33rd, 35th, and 36th values
+        }
+        
+        if self.super_Ani_head_kps_ON:
+            # Shape is [14,2]
+            img_coordinates_tensor = torch.cat((bodypart_dict["face"], bodypart_dict["neck"]))
+        elif self.super_Ani_body_kps_ON:    
+            # Get the body keypoints
+            img_coordinates_tensor = bodypart_dict["body"]
+        elif self.all_4_legs_kps_ON:
+            img_coordinates_tensor = torch.cat((bodypart_dict["front_left_leg"], bodypart_dict["front_right_leg"], bodypart_dict["back_left_leg"], bodypart_dict["back_right_leg"]))
+        elif self.front_left_leg_kps_ON:    
+            # Get the front left leg keypoints
+            img_coordinates_tensor = bodypart_dict["front_left_leg"]
+        elif self.front_right_leg_kps_ON:     
+            # Get the front right leg keypoints
+            img_coordinates_tensor = bodypart_dict["front_right_leg"]
+        elif self.back_left_leg_kps_ON:
+            # Get the back left leg keypoints
+            img_coordinates_tensor = bodypart_dict["back_left_leg"]
+        elif self.back_right_leg_kps_ON:
+            # Get the back right leg keypoints
+            img_coordinates_tensor = bodypart_dict["back_right_leg"]
+        else:
+            # Combine all keypoints into a single tensor    
+            img_coordinates_tensor = torch.cat(list(bodypart_dict.values()))
+        
+        
+        # # Plot only the selected subset of keypoints (img_coordinates_tensor) at the end
+        # ax.scatter(img_coordinates_tensor[:, 0], img_coordinates_tensor[:, 1], c=np.arange(len(img_coordinates_tensor)), cmap=cmap)
+
+        # Plot only the selected subset of keypoints (img_coordinates_tensor) at the end
+        for i, (x, y) in enumerate(img_coordinates_tensor):
+            # Plot the point
+            ax.scatter(x.item(), y.item(), color=cmap(i / len(img_coordinates_tensor)), label=f'Point {i + 1}')
+
+            add_slno_coordinate_values = True
+            if add_slno_coordinate_values:
+                # Annotate with serial number next to the point
+                ax.text(x.item() + 12, y.item() + 12, f'{i + 1}', color="blue", fontsize=15, ha='center', va='center')
+
+                # # # Write the coordinate values on the right side of the plot
+                ax.text(frame.shape[1] + 25, 25 * i, f'Point {i + 1}: ({x.item():.1f}, {y.item():.1f})', color="black", fontsize=15,  ha='center', va='top')
                 
-                # Set the figure size to 256x256 pixels or 840x840 pixels
-                fig.set_size_inches(840/100, 840/100)
-                fig.savefig(os.path.join(out_folder, f"vis_{image_name1}"), bbox_inches='tight', pad_inches=0)
-                # plt.close(fig)
+                # # Write the coordinate values slightly below the image for better alignment
+                # ax.text(40 * i + 20, frame.shape[0] + 30, f'Point {i + 1}: ({x.item():.1f}, {y.item():.1f})',
+                #         color="black", fontsize=10, ha='center', va='top')
                 
-            # Combine all coordinates for this image into a single tensor
-            if len(image_coords) > 0:
-                image_coords_tensor = torch.cat(image_coords)  # Concatenate all (x, y) for this image
-                all_coordinates.append(image_coords_tensor)
-            # image coordinates
-            # Stack all tensors from all images into a single tensor with shape (n_images, n_poses, 2)
-            if len(all_coordinates) > 0:
-                img_coordinates_tensor = torch.stack(all_coordinates)    
                 
+    
+        add_slno_coordinate_values = True
+        if add_slno_coordinate_values:
+            # # Adjust the plot limits to make space for the coordinates on the side
+            ax.set_xlim(0, frame.shape[1] + 100)  # Add extra width to accommodate text
+
+            
+            # Adjust the plot limits to add space at the bottom for coordinates
+            # ax.set_ylim(0, frame.shape[0] + 50)  # Add extra height to accommodate text at the bottom
+
+        save_ape_image = True
+        if save_ape_image:    
+            image_name1 = image_path.split(os.sep)[-1]
+            out_folder = f'{self.path_to_save_images}/superanimal_prediction/'
+            
+            # Set the figure size to 256x256 pixels or 840x840 pixels
+            fig.set_size_inches(840/100, 840/100)
+            fig.savefig(os.path.join(out_folder, f"vis_{image_name1}"), bbox_inches='tight', pad_inches=0)
+            plt.close(fig)
+        
         return img_coordinates_tensor, fig, image_name1
+
+
+        # # Combine all coordinates for this image into a single tensor
+        # if len(image_coords) > 0:
+        #     image_coords_tensor = torch.cat(image_coords)  # Concatenate all (x, y) for this image
+        #     all_coordinates.append(image_coords_tensor)
+        # # image coordinates
+        # # Stack all tensors from all images into a single tensor with shape (n_images, n_poses, 2)
+        # if len(all_coordinates) > 0:
+        #     img_coordinates_tensor = torch.stack(all_coordinates)  
+    
+            
+    def process_target_images_folder(self, iteration, iterations_per_image=20):
+        # List all images in the target image folder and sort them for a consistent order
+        image_files = [f for f in os.listdir(self.target_image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        image_files.sort()  # Sort to ensure a consistent order
+        # Calculate the image index based on the current iteration
+        image_index = iteration // iterations_per_image
+        if image_index >= len(image_files):
+            # If we exceed the number of images, loop back (or handle as needed)
+            image_index = image_index % len(image_files)
+        # Select the image file based on the calculated index
+        filename = image_files[image_index]
+        image_path = os.path.join(self.target_image_folder, filename)
+        # Open the original image
+        image = Image.open(image_path)
+        # Resize the image to 840x840
+        resized_image = image.resize((840, 840), Image.LANCZOS)
+        # Save the resized image (overwrite the original or specify a new path)
+        resized_image_path = os.path.join(self.target_image_folder, f"resized_{filename}")
+        
+        # To save the resized image
+        resized_image.save(resized_image_path)
+        
+        # Process the resized image with get_superAni_kps_and_image
+        target_img_coordinates_tensor_superAni, superAni_target_img_with_kps, image_name1 = self.get_superAni_kps_and_image(resized_image_path)
+        # Optionally, print or log the current iteration and image being used
+        print(f"Iteration {iteration + 1}, using image: {filename}")
+        return target_img_coordinates_tensor_superAni, superAni_target_img_with_kps

@@ -68,7 +68,7 @@ model:
   articulation_predictor:
     _target_: dos.predictors.articulation_predictor.ArticulationPredictor  # Class Name
     size_dataset: 49
-    num_bones: 20
+    num_bones: 47
     degree: 70
     
   renderer:   # variable Name

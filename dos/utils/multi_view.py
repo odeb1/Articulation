@@ -61,7 +61,7 @@ def get_4_alternating_phi(device, last_phi=[-1]):
     return torch.tensor([current_phi], dtype=torch.float, device=device)
 
 
-def get_2_alternating_phi_45_degree_apart(device, last_phi=[-1, 0], update_interval=40):
+def get_2_alternating_phi_45_degree_apart(device, last_phi=[-1, 0], update_interval=20):
     """
     Generates phi values that are 45 degrees apart, maintaining each phi value for 'n' iterations.
     
@@ -75,7 +75,10 @@ def get_2_alternating_phi_45_degree_apart(device, last_phi=[-1, 0], update_inter
         torch.Tensor: A tensor containing the current phi value.
     """
     # The sequence of phi values to cycle through
-    phi_sequence = [np.deg2rad(45), np.deg2rad(315)]
+    # phi_sequence = [np.deg2rad(45), np.deg2rad(315)]
+    
+    # For the new target images
+    phi_sequence = [np.deg2rad(315), np.deg2rad(45)]
     
     # Check if the current phi value has been used for 'n' iterations
     if last_phi[1] >= update_interval:
@@ -95,7 +98,7 @@ def get_2_alternating_phi_45_degree_apart(device, last_phi=[-1, 0], update_inter
     return torch.tensor([current_phi], dtype=torch.float, device=device)
 
 
-def get_4_alternating_phi_45_degree_apart(device, last_phi=[-1, 0], update_interval=15):
+def get_4_alternating_phi_45_degree_apart_old(device, update_interval, last_phi=[-1, 0]):
     """
     Generates phi values that are 45 degrees apart, maintaining each phi value for 'n' iterations.
     
@@ -109,16 +112,21 @@ def get_4_alternating_phi_45_degree_apart(device, last_phi=[-1, 0], update_inter
         torch.Tensor: A tensor containing the current phi value.
     """
     # The sequence of phi values to cycle through
-    phi_sequence = [np.deg2rad(-45), np.deg2rad(135), np.deg2rad(45), np.deg2rad(-135)]
+    #phi_sequence = [np.deg2rad(-45), np.deg2rad(135), np.deg2rad(45), np.deg2rad(-135)]
+    # phi_sequence = [np.deg2rad(315), np.deg2rad(45), np.deg2rad(-315), np.deg2rad(-45)]
+    phi_sequence = [np.deg2rad(45), np.deg2rad(315), np.deg2rad(-45), np.deg2rad(-315)]
     
     # Check if the current phi value has been used for 'n' iterations
     if last_phi[1] >= update_interval:
         # Increment the index to move to the next value in the sequence
         last_phi[0] = (last_phi[0] + 1) % len(phi_sequence)
         last_phi[1] = 0  # Reset the iteration counter for the new phi value
+        print("last_phi[0]", last_phi[0])
     else:
         # Increment the iteration counter for the current phi value
+        print("last_phi[1]", last_phi[1])
         last_phi[1] += 1
+        print("last_phi[1]", last_phi[1])
     
     # Select the current phi value based on the updated index
     current_phi = phi_sequence[last_phi[0]]
@@ -128,6 +136,32 @@ def get_4_alternating_phi_45_degree_apart(device, last_phi=[-1, 0], update_inter
     # Return a tensor containing the current phi value
     return torch.tensor([current_phi], dtype=torch.float, device=device)
 
+
+def get_4_alternating_phi_45_degree_apart(device, iteration, update_interval=20):
+    """
+    Generates phi values that are 45 degrees apart, maintaining each phi value for 'update_interval' iterations.
+
+    Args:
+        device (str): The device type (e.g., 'cpu' or 'cuda').
+        iteration (int): The current iteration number.
+        update_interval (int): The number of iterations to keep the same phi value.
+
+    Returns:
+        torch.Tensor: A tensor containing the current phi value.
+    """
+    # Define the sequence of phi values
+    phi_sequence = [np.deg2rad(45), np.deg2rad(315), np.deg2rad(225), np.deg2rad(135)]
+    
+    # Calculate the index in the phi sequence based on the iteration number
+    sequence_index = (iteration // update_interval) % len(phi_sequence)
+    
+    # Select the current phi value from the sequence
+    current_phi = phi_sequence[sequence_index]
+    
+    print(f"Iteration {iteration}: Using phi = {np.rad2deg(current_phi)} degrees")
+
+    # Return the current phi value as a tensor
+    return torch.tensor([current_phi], dtype=torch.float, device=device)
 
 
 def poses_helper_func(size, device, phis, thetas, radius_range=[2.5, 2.5], angle_overhead=30, angle_front=60, phi_offset=0, jitter=False, cam_z_offset=0, return_dirs=True):
@@ -202,7 +236,7 @@ def is_side_view(phis, tolerance=np.deg2rad(1), device='cpu'):
     return torch.any(torch.isclose(phis, ninety_degrees, atol=tolerance)) or torch.any(torch.isclose(phis, minus_ninety_degrees, atol=tolerance))
 
 
-def poses_along_azimuth(size, device, batch_number=0, iteration=0,  radius=2.5, theta=90, phi_range=[0, 360], multi_view_option='multiple_random_phi_in_batch', **kwargs):
+def poses_along_azimuth(size, device, update_interval, batch_number=0, iteration=0,  radius=2.5, theta=90, phi_range=[0, 360], multi_view_option='multiple_random_phi_in_batch', **kwargs):
     ''' generate random poses from an orbit camera along uniformly distributed azimuth and fixed elevation
     Args:
         size: batch size of generated poses.
@@ -285,16 +319,19 @@ def poses_along_azimuth(size, device, batch_number=0, iteration=0,  radius=2.5, 
         phis = get_4_alternating_phi(device)
         
     elif multi_view_option == "get_4_alternating_phi_45_degree_apart":
-        phis = get_4_alternating_phi_45_degree_apart(device=device)
+        phis = get_4_alternating_phi_45_degree_apart(device=device, iteration=iteration, update_interval=update_interval)
         
     elif multi_view_option == "get_2_alternating_phi_45_degree_apart":
-        phis = get_2_alternating_phi_45_degree_apart(device=device)
+        phis = get_2_alternating_phi_45_degree_apart(device=device, update_interval=update_interval)
         
     elif multi_view_option == 'multiple_random_phi_in_batch':                       
         phi_range = np.deg2rad(phi_range)
         # For azimuth rotation (phi), will create a sequence of values within the specified range
         # Do not include endpoint (as in np.linspace) to avoid duplicate values
         phis = torch.linspace(phi_range[0], phi_range[1], steps=size+1, device=device)[:size]
+        
+    # elif multi_view_option == 'get_45_135_225_315_deg':
+        
         
     
     # Keeping theta (elevation angle) constant

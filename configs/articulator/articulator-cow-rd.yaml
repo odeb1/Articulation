@@ -2,12 +2,12 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset       # Class Name
-  root_dir: /work/oishideb/cow_sd_generated_1  # /0_poses_target_img_NO_KPs.png
-  # root_dir: /work/oishideb/cow_sd_generated_2   # Fixed cow walking image 315 degree
-  # root_dir: /work/oishideb/cow_sd_generated_3   # Fixed head bend cow image
-  # root_dir: /work/oishideb/cow_sd_generated_4   # Fixed cow walking image 45 degree
-  # root_dir: /scratch/shared/beegfs/oishideb/cow  # sample 1
-  # root_dir: /work/oishideb/cow_sample_2  # sample 2
+  root_dir: /work/oishideb/cow_sd_generated_0        # mv_dream 45 deg side view
+  # root_dir: /work/oishideb/cow_sd_generated_2      # Fixed cow walking image 315 degree
+  # root_dir: /work/oishideb/cow_sd_generated_3      # Fixed head bend cow image
+  # root_dir: /work/oishideb/cow_sd_generated_4      # Fixed cow walking image 45 degree
+  # root_dir: /scratch/shared/beegfs/oishideb/cow    # sample 1
+  # root_dir: /work/oishideb/cow_sample_2            # sample 2
   # root_dir: /work/oishideb/cow_dataset/cow_dataset # 9 images
   attributes:
     - name: image
@@ -32,11 +32,20 @@ model:
     _target_: dos.components.skinning.gltf_skinning.Skin
     gltf_file_path: /scratch/shared/beegfs/tomj/projects/articulator/data/synth_animals/shape_templates/cow_female-rd/Cow-OBJ-v01/Cow_Highpoly.gltf
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2407_Cow_back_view
-  target_image_path: /users/oishideb/oishideb/cow_sd_generated_1/000001_rgb.png
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2504_Cow_mv_dream_lr_0_0009_4_views_interval_1
+  # target_image_path: /users/oishideb/oishideb/cow_sd_generated_0/000009_rgb.png  # mv_dream 45 deg side view
+  # target_image_path: /users/oishideb/oishideb/cow_sd_generated_3/000001_rgb.png  # Head Bend Cow
+  # target_image_path: /users/oishideb/oishideb/cow_sd_generated_0/000009_rgb.png  # SD gen 135 deg side view standing back 2 legs only
+  # target_image_path: /users/oishideb/oishideb/cow_sd_generated_2/000001_rgb.png  # 135 deg side view 
+  # target_image_path: /users/oishideb/oishideb/cow_sd_generated_4/000009_rgb.png  # SD gen previous - 45 deg side view
+  # target_image_path: /users/oishideb/oishideb/cow_sd_generated_0/000009_rgb.png  # 45 deg side view
+  # target_image_path: /users/oishideb/oishideb/cow_sd_generated_1/000001_rgb.png  # 135 deg side view Back view
   superAnimal_kp_ON: True
+  super_Ani_head_kps_ON: False
+  super_Ani_body_kps_ON: False
+  all_4_legs_kps_ON: True
   num_pose_for_optim: 1
-  num_pose_for_visual: 20
+  num_pose_for_visual: 8
   num_sample_bone_line: 5  #
   num_sample_farthest_points: 250 # No. of Keypoints to select randomly 
   mode_kps_selection: "kps_based_on_superAnimal" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
@@ -46,7 +55,7 @@ model:
   view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"
   random_camera_radius: 2.5 # for single_view: 1; for multi-view: 2.5
   fit_shape_template_inside_unit_cube: True # for single_view: False; for multi-view: True
-  phi_range_for_optim:  [135, 135] # [0, 360] # ; For one sideview [90,90]; For back view [135, 135]
+  phi_range_for_optim:  [0, 360] # [0, 360] # ; For one sideview [90,90]; For back view [135, 135], [225, 225]. side [315, 315]
   phi_range_for_visual: [0, 360] # 
   
   # Options are
@@ -59,7 +68,10 @@ model:
   # "multiple_random_phi_in_batch"      # if selected this, then specify the no. here - "num_pose_for_optim"
   # "2_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim"
   # "guidance_and_rand_views_in_batch"  # if selected this, then specify the no. here - "num_pose_for_optim" as 2
-  multi_view_optimise_option: "multiple_random_phi_in_batch"
+  multi_view_optimise_option: "get_4_alternating_phi_45_degree_apart"
+  target_image_folder: /users/oishideb/oishideb/mv_dream_Cow_target_img_4_views # 4 views
+  # target_image_folder: /users/oishideb/oishideb/mv_dream_Cow_target_img_2_views # 2 views
+  pose_update_interval: 1
 
   bones_rotations: "bones_rotations" # Options are "bones_rotations"; "DUMMY_bones_rotations"; "NO_bones_rotations"
   using_pil_object: False
@@ -79,7 +91,7 @@ model:
   articulation_predictor:
     _target_: dos.predictors.articulation_predictor.ArticulationPredictor  # Class Name
     size_dataset: 49
-    num_bones: 47 # GLTF has 47 bones
+    num_bones: 47 # GLTF cow has 47 bones
     # degree: 60
     
   renderer:   # variable Name
@@ -90,7 +102,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2407_Cow_back_view/sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2504_Cow_mv_dream_lr_0_0009_4_views_interval_1/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     prompts_source: '' #.The photo should have a grey background.' 
@@ -114,7 +126,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2407_Cow_back_view
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2504_Cow_mv_dream_lr_0_0009_4_views_interval_1
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
 save_each_iteration: True
@@ -126,9 +138,9 @@ device: cuda:0
 # resume: True
 
 # learning_rate: 1e-9  # tried with 0.01, 0.5, 0.9, 1;   # 1e-4   # DOS_1432
-learning_rate: 0.0007 # 0.0005          
+learning_rate: 0.00095 # 0.0005          
 # for debugging
-num_iterations: 15
+num_iterations: 80
 num_vis_iterations: 1
 num_eval_iterations: 10
 save_checkpoint_freq: 50
