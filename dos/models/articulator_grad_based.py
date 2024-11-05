@@ -159,6 +159,36 @@ class Articulator(BaseModel):
             mesh = mesh_utils.fit_inside_unit_cube(mesh)
         return mesh
 
+    def get_superAnimal_kp(
+        self, articulated_mesh, mvp, renderer, bones, rendered_mask, rendered_image, rendered_img_coordinates_tensor_superAni, target_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, superAni_target_img_with_kps
+    ):
+       
+        # All the visible_vertices in 2d
+        # visible_vertices.shape is torch.Size([2, 31070]) 
+        visible_vertices = mesh_utils.get_visible_vertices(                                                  
+            articulated_mesh, mvp, renderer.resolution
+        )
+        
+        eroded_mask = self.mask_erode_tensor(rendered_mask)
+        
+        if self.mode_kps_selection == "kps_based_on_superAnimal":
+            kps_img_resolu = self.kps_based_on_superAnimal(rendered_image, mvp, visible_vertices, articulated_mesh, eroded_mask, self.num_sample_farthest_points, rendered_img_coordinates_tensor_superAni)
+        
+        output_dict = {}
+        
+        superAni_render_target_combined_fig = self.combine_and_save_matplot_figures(superAni_rendered_img_with_kps, superAni_target_img_with_kps, index=00)
+            
+        output_dict = {
+        "rendered_kps": kps_img_resolu,           
+        "rendered_img_coordinates_tensor_superAni": rendered_img_coordinates_tensor_superAni,
+        "target_img_coordinates_tensor_superAni": target_img_coordinates_tensor_superAni,
+        "superAni_rendered_img_with_kps": superAni_rendered_img_with_kps,
+        "superAni_target_img_with_kps": superAni_target_img_with_kps,
+        "superAni_render_target_combined_fig": superAni_render_target_combined_fig,
+        }        
+        
+        return output_dict
+    
     def compute_correspondences(
         self, articulated_mesh, mvp, renderer, bones, rendered_mask, rendered_image, rendered_img_coordinates_tensor_superAni, target_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, superAni_target_img_with_kps, target_image
     ):
@@ -533,36 +563,52 @@ class Articulator(BaseModel):
             
             rendered_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, image_name2 = self.get_superAni_kps_and_image(rendered_image_path)
             
+        outputs = {}    
+        if self.superAnimal_kp_ON:
+            superAnimal_kp_dict = self.get_superAnimal_kp(
+                articulated_mesh,
+                mvp,                                       
+                self.renderer,
+                posed_bones, 
+                renderer_outputs["mask_pred"],
+                renderer_outputs["image_pred"],
+                rendered_img_coordinates_tensor_superAni,
+                target_img_coordinates_tensor_superAni,
+                superAni_rendered_img_with_kps,
+                superAni_target_img_with_kps,
+            )
             
-        
-        # print('target_img_rgb.shape', target_img_rgb.shape)
-        start_time = time.time()
-        # compute_correspondences for keypoint loss
-        correspondences_dict = self.compute_correspondences(
-            articulated_mesh,
-            mvp,                   # mvp,               # batch["pose"].shape is torch.Size([Batch size, 12])
-            self.renderer,
-            posed_bones,                        # predicted articulated bones
-            #bones_predictor_outputs["bones_pred"],    # this is a rest pose    # bones_predictor_outputs["bones_pred"].shape is torch.Size([4, 20, 2, 3]), 4 is batch size, 20 is number of bones, 2 are the two endpoints of the bones and 3 means the 3D point defining one of the end points of the line segment in 3D that defines the bone 
-            renderer_outputs["mask_pred"],
-            renderer_outputs["image_pred"],            # renderer_outputs["image_pred"].shape is torch.Size([4, 3, 256, 256]), 4 is batch size, 3 is RGB channels, 256 is image resolution
-            rendered_img_coordinates_tensor_superAni,
-            target_img_coordinates_tensor_superAni,
-            superAni_rendered_img_with_kps,
-            superAni_target_img_with_kps,
-            target_image = batch["image"] if self.target_image_fixed else target_img_rgb,                  # batch["image"] is fixed Target images (generated from SD), target_img_rgb randomly generated per iteration
-        )
-        end_time = time.time()  # Record the end time
-        # with open('log.txt', 'a') as file:
-        #     file.write(f"The 'compute_correspondences' took {end_time - start_time} seconds to run.\n")
-        print(f"The compute_correspondences took {end_time - start_time} seconds to run.")
-        outputs = {}
-        # TODO: probaly rename the ouputs of the renderer
-        # outputs.update(target_img_rgb)
+            outputs.update(superAnimal_kp_dict)
+        else:    
+            # print('target_img_rgb.shape', target_img_rgb.shape)
+            start_time = time.time()
+            # compute_correspondences for keypoint loss
+            correspondences_dict = self.compute_correspondences(
+                articulated_mesh,
+                mvp,                   # mvp,               # batch["pose"].shape is torch.Size([Batch size, 12])
+                self.renderer,
+                posed_bones,                        # predicted articulated bones
+                #bones_predictor_outputs["bones_pred"],    # this is a rest pose    # bones_predictor_outputs["bones_pred"].shape is torch.Size([4, 20, 2, 3]), 4 is batch size, 20 is number of bones, 2 are the two endpoints of the bones and 3 means the 3D point defining one of the end points of the line segment in 3D that defines the bone 
+                renderer_outputs["mask_pred"],
+                renderer_outputs["image_pred"],            # renderer_outputs["image_pred"].shape is torch.Size([4, 3, 256, 256]), 4 is batch size, 3 is RGB channels, 256 is image resolution
+                rendered_img_coordinates_tensor_superAni,
+                target_img_coordinates_tensor_superAni,
+                superAni_rendered_img_with_kps,
+                superAni_target_img_with_kps,
+                target_image = batch["image"] if self.target_image_fixed else target_img_rgb,                  # batch["image"] is fixed Target images (generated from SD), target_img_rgb randomly generated per iteration
+            )
+            end_time = time.time()  # Record the end time
+            # with open('log.txt', 'a') as file:
+            #     file.write(f"The 'compute_correspondences' took {end_time - start_time} seconds to run.\n")
+            print(f"The compute_correspondences took {end_time - start_time} seconds to run.")
+            
+            # TODO: probaly rename the ouputs of the renderer
+            # outputs.update(target_img_rgb)
+            
+            outputs.update(correspondences_dict)
         
         
         outputs.update(renderer_outputs)        # renderer_outputs keys are dict_keys(['image_pred', 'mask_pred', 'albedo', 'shading'])
-        outputs.update(correspondences_dict)
         ## Saving poses along the azimuth
         self.save_pose_along_azimuth(articulated_mesh, material, self.path_to_save_images)      
     
@@ -680,36 +726,8 @@ class Articulator(BaseModel):
         
         start_time = time.time()
         
-        for index, item in enumerate(model_outputs["rendered_image_with_kps"]):
-            
-            if self.save_individual_img:  
-                # This image is a Matplotlib Object
-                dir_path = f'{path_to_save_img_per_iteration}/rendered_img_with_kps/{index}_pose'
-                os.makedirs(dir_path, exist_ok=True)
-                plt.gcf().set_facecolor('grey')
-                model_outputs["rendered_image_with_kps"][index].savefig(f'{dir_path}/{iteration}_rendered_img_with_kps.png', bbox_inches='tight')
-
-                # This image is a PIL Object
-                dir_path = f'{path_to_save_img_per_iteration}/rendered_img_NO_kps/{index}_pose'
-                os.makedirs(dir_path, exist_ok=True)
-                model_outputs["rendered_img_NO_kps"][index].save(f'{dir_path}/{iteration}_rendered_img_NO_kps.png', bbox_inches='tight')
-
-                # This image is a Matplotlib Object
-                plt.gcf().set_facecolor('grey')
-                dir_path = f'{path_to_save_img_per_iteration}/target_img_with_kps/{index}_pose'
-                os.makedirs(dir_path, exist_ok=True)
-                model_outputs["target_image_with_kps"][index].savefig(f'{dir_path}/{iteration}_target_img_with_kps.png', bbox_inches='tight')
-                
-                # This image is a PIL Object
-                dir_path = f'{path_to_save_img_per_iteration}/target_img_NO_kps/{index}_pose'
-                os.makedirs(dir_path, exist_ok=True)
-                model_outputs["target_img_NO_kps"][index].save(f'{dir_path}/{iteration}_target_img_NO_kps.png', bbox_inches='tight')
-                
-            dir_path = f'{path_to_save_img_per_iteration}/rendered_target_image_with_wo_kps_list/{index}_pose'
-            os.makedirs(dir_path, exist_ok=True)
-            model_outputs["rendered_target_image_with_wo_kps_list"][index].save(f'{dir_path}/{iteration}_rendered_target_image_with_wo_kps_list.png', bbox_inches='tight')
-            
-            if self.superAnimal_kp_ON:
+        if self.superAnimal_kp_ON:
+            for index, item in enumerate(model_outputs["rendered_kps"]):
                 dir_path = f'{path_to_save_img_per_iteration}/superAni_target_image_with_wo_kps_list/{index}_pose'
                 os.makedirs(dir_path, exist_ok=True)
                 model_outputs["superAni_target_img_with_kps"].savefig(f'{dir_path}/{iteration}_superAni_target_image_with_wo_kps_list.png', bbox_inches='tight', pad_inches=0)
@@ -720,11 +738,41 @@ class Articulator(BaseModel):
             
                 superAni_render_target_combined_fig = self.combine_and_save_matplot_figures(model_outputs["superAni_rendered_img_with_kps"], model_outputs["superAni_target_img_with_kps"], iteration)
             
-            if (self.cyc_consi_check_switch & self.cyc_check_img_save):
-                dir_path = f'{path_to_save_img_per_iteration}/cyc_check_combined_image_list/{index}_pose'
+        else:
+            for index, item in enumerate(model_outputs["rendered_image_with_kps"]):
+                dir_path = f'{path_to_save_img_per_iteration}/rendered_target_image_with_wo_kps_list/{index}_pose'
                 os.makedirs(dir_path, exist_ok=True)
-                model_outputs["cyc_check_combined_image_list"][index].save(f'{dir_path}/{iteration}_cyc_check_combined_image_list.png', bbox_inches='tight')
-             
+                model_outputs["rendered_target_image_with_wo_kps_list"][index].save(f'{dir_path}/{iteration}_rendered_target_image_with_wo_kps_list.png', bbox_inches='tight')
+
+                if self.save_individual_img:  
+                    # This image is a Matplotlib Object
+                    dir_path = f'{path_to_save_img_per_iteration}/rendered_img_with_kps/{index}_pose'
+                    os.makedirs(dir_path, exist_ok=True)
+                    plt.gcf().set_facecolor('grey')
+                    model_outputs["rendered_image_with_kps"][index].savefig(f'{dir_path}/{iteration}_rendered_img_with_kps.png', bbox_inches='tight')
+
+                    # This image is a PIL Object
+                    dir_path = f'{path_to_save_img_per_iteration}/rendered_img_NO_kps/{index}_pose'
+                    os.makedirs(dir_path, exist_ok=True)
+                    model_outputs["rendered_img_NO_kps"][index].save(f'{dir_path}/{iteration}_rendered_img_NO_kps.png', bbox_inches='tight')
+
+                    # This image is a Matplotlib Object
+                    plt.gcf().set_facecolor('grey')
+                    dir_path = f'{path_to_save_img_per_iteration}/target_img_with_kps/{index}_pose'
+                    os.makedirs(dir_path, exist_ok=True)
+                    model_outputs["target_image_with_kps"][index].savefig(f'{dir_path}/{iteration}_target_img_with_kps.png', bbox_inches='tight')
+
+                    # This image is a PIL Object
+                    dir_path = f'{path_to_save_img_per_iteration}/target_img_NO_kps/{index}_pose'
+                    os.makedirs(dir_path, exist_ok=True)
+                    model_outputs["target_img_NO_kps"][index].save(f'{dir_path}/{iteration}_target_img_NO_kps.png', bbox_inches='tight')
+
+
+                if (self.cyc_consi_check_switch & self.cyc_check_img_save):
+                    dir_path = f'{path_to_save_img_per_iteration}/cyc_check_combined_image_list/{index}_pose'
+                    os.makedirs(dir_path, exist_ok=True)
+                    model_outputs["cyc_check_combined_image_list"][index].save(f'{dir_path}/{iteration}_cyc_check_combined_image_list.png', bbox_inches='tight')
+
             #     # This image is a Matplotlib Object
             #     dir_path = f'{path_to_save_img_per_iteration}/cycle_consi/{index}_pose'
             #     os.makedirs(dir_path, exist_ok=True)
@@ -745,9 +793,7 @@ class Articulator(BaseModel):
 
             end_time = time.time()  # Record the end time
             print(f"The 'Saving img for every iterations' took {end_time - start_time} seconds to run.")
-            # with open('log.txt', 'a') as file:
-            #     file.write(f"The 'Saving img for every iterations' took {end_time - start_time} seconds to run.\n")
-    
+            
     
     # For Debugging purpose, save all the poses before optimisation
     def save_all_poses_before_optimisation(self, pose, renderer_outputs, path_to_save_images):    

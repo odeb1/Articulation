@@ -32,7 +32,7 @@ model:
     _target_: dos.components.skinning.gltf_skinning.Skin
     gltf_file_path: /scratch/shared/beegfs/tomj/projects/articulator/data/synth_animals/shape_templates/cow_female-rd/Cow-OBJ-v01/Cow_Highpoly.gltf
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2504_Cow_mv_dream_lr_0_0009_4_views_interval_1
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2506_Cow_mv_dream_lr_0_0009_4_views_interval_1
   # target_image_path: /users/oishideb/oishideb/cow_sd_generated_0/000009_rgb.png  # mv_dream 45 deg side view
   # target_image_path: /users/oishideb/oishideb/cow_sd_generated_3/000001_rgb.png  # Head Bend Cow
   # target_image_path: /users/oishideb/oishideb/cow_sd_generated_0/000009_rgb.png  # SD gen 135 deg side view standing back 2 legs only
@@ -102,7 +102,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2504_Cow_mv_dream_lr_0_0009_4_views_interval_1/sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2506_Cow_mv_dream_lr_0_0009_4_views_interval_1/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     prompts_source: '' #.The photo should have a grey background.' 
@@ -126,7 +126,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2504_Cow_mv_dream_lr_0_0009_4_views_interval_1
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2506_Cow_mv_dream_lr_0_0009_4_views_interval_1
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
 save_each_iteration: True
