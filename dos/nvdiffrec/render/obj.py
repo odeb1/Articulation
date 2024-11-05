@@ -109,8 +109,8 @@ def load_obj(filename, clear_ks=True, mtl_override=None, load_materials=True):
                 vv = vs[i + 2].split("/")
                 v2 = int(vv[0]) - 1
                 t2 = int(vv[1]) - 1 if vv[1] != "" else -1
-                n2 = int(vv[2]) - 1 if vv[2] != "" else -1
-                # n2 = int(vv[2]) - 1 if len(vv) > 2 and vv[2] != "" else -1
+                # n2 = int(vv[2]) - 1 if vv[2] != "" else -1
+                n2 = int(vv[2]) - 1 if len(vv) > 2 and vv[2] != "" else -1
                 mfaces.append(activeMatIdx)
                 faces.append([v0, v1, v2])
                 tfaces.append([t0, t1, t2])
