@@ -180,14 +180,14 @@ class Articulator(BaseModel):
         eroded_mask = self.mask_erode_tensor(rendered_mask)
         
         if self.mode_kps_selection == "kps_based_on_superAnimal":
-            kps_img_resolu = self.kps_based_on_superAnimal(rendered_image, mvp, visible_vertices, articulated_mesh, eroded_mask, self.num_sample_farthest_points, rendered_img_coordinates_tensor_superAni)
+            rendered_img_coordinates_tensor_superAni = self.kps_based_on_superAnimal(rendered_image, mvp, visible_vertices, articulated_mesh, eroded_mask, self.num_sample_farthest_points, rendered_img_coordinates_tensor_superAni)
         
         output_dict = {}
         
         superAni_render_target_combined_fig = self.combine_and_save_matplot_figures(superAni_rendered_img_with_kps, superAni_target_img_with_kps, index=00)
             
         output_dict = {
-        "rendered_kps": kps_img_resolu,           
+        # "rendered_kps": kps_img_resolu,           
         "rendered_img_coordinates_tensor_superAni": rendered_img_coordinates_tensor_superAni,
         "target_img_coordinates_tensor_superAni": target_img_coordinates_tensor_superAni,
         "superAni_rendered_img_with_kps": superAni_rendered_img_with_kps,
@@ -198,7 +198,7 @@ class Articulator(BaseModel):
         return output_dict
     
     def compute_correspondences(
-        self, articulated_mesh, mvp, renderer, bones, rendered_mask, rendered_image, rendered_img_coordinates_tensor_superAni, target_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, superAni_target_img_with_kps, target_image
+        self, articulated_mesh, mvp, renderer, bones, rendered_mask, rendered_image, target_image
     ):
         # 1. Sample keypoints from the rendered image
         #    - find the closest visible point on the articulated_mesh in 3D (the visibility is done in 2D)
@@ -226,10 +226,7 @@ class Articulator(BaseModel):
             kps_img_resolu = self.kps_fr_sample_on_bone_line(bones, mvp, articulated_mesh, visible_vertices, self.num_sample_bone_line, eroded_mask)
         elif self.mode_kps_selection == "kps_fr_sample_farthest_points":
             kps_img_resolu = self.kps_fr_sample_farthest_points(rendered_image, mvp, visible_vertices, articulated_mesh, eroded_mask, self.num_sample_farthest_points)
-        elif self.mode_kps_selection == "kps_based_on_superAnimal":
-            kps_img_resolu = self.kps_based_on_superAnimal(rendered_image, mvp, visible_vertices, articulated_mesh, eroded_mask, self.num_sample_farthest_points, rendered_img_coordinates_tensor_superAni)
-            # kps_img_resolu = self.kps_based_on_superAnimal_old(bones, mvp, articulated_mesh, visible_vertices, self.num_sample_bone_line, eroded_mask, rendered_img_coordinates_tensor_superAni)
-            
+           
         output_dict = {}
         
         target_image_with_kps_list_after_cyc_check = []
@@ -314,8 +311,7 @@ class Articulator(BaseModel):
                         # SAVE CYCLE CONSISTENCY IMAGES
                         self.save_cyc_consi_check_images(cycle_consi_image_with_kps_list[index], rendered_image_with_kps_cyc_check, target_image_with_kps_cyc_check, index)
         
-        superAni_render_target_combined_fig = self.combine_and_save_matplot_figures(superAni_rendered_img_with_kps, superAni_target_img_with_kps, index=00)
-            
+        
         output_dict = {
         "rendered_kps": kps_img_resolu,                     
         "target_corres_kps": corres_target_kps_tensor_stack,         
@@ -328,11 +324,6 @@ class Articulator(BaseModel):
         "target_image_with_kps_list_after_cyc_check": target_image_with_kps_list_after_cyc_check,
         "rendered_target_image_with_wo_kps_list": rendered_target_image_with_wo_kps_list,
         "cyc_check_combined_image_list": cyc_check_combined_image_list,
-        "rendered_img_coordinates_tensor_superAni": rendered_img_coordinates_tensor_superAni,
-        "target_img_coordinates_tensor_superAni": target_img_coordinates_tensor_superAni,
-        "superAni_rendered_img_with_kps": superAni_rendered_img_with_kps,
-        "superAni_target_img_with_kps": superAni_target_img_with_kps,
-        "superAni_render_target_combined_fig": superAni_render_target_combined_fig,
         }        
         
         ## Saving multiple random poses with and without keypoints visualisation
@@ -390,7 +381,6 @@ class Articulator(BaseModel):
             
             # bones_rotations.shape is [1, 47, 4] for cow
             # mesh.v_pos.shape is [1, 7483, 3] for cow
-            # import ipdb; ipdb.set_trace()
             articulated_verts, skin_aux = self.gltf_skin.skin_mesh_with_rotations(mesh.v_pos, bones_rotations)
             articulated_mesh = make_mesh(
                 articulated_verts, mesh.t_pos_idx, mesh.v_tex, mesh.t_tex_idx, mesh.material
@@ -443,7 +433,6 @@ class Articulator(BaseModel):
                 pose, direction = multi_view.rand_poses(self.num_pose_for_optim, self.device, iteration=iteration, radius_range=self.random_camera_radius)
                 
             elif self.view_option == "multi_view_azimu":
-               
                 pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_optim, self.device, batch_number=num_batches, iteration=iteration, radius=self.random_camera_radius, phi_range=self.phi_range_for_optim, multi_view_option = self.multi_view_optimise_option, update_interval=self.pose_update_interval)
         else:
             pose=batch["pose"]
@@ -490,10 +479,8 @@ class Articulator(BaseModel):
         
         rendered_image = renderer_outputs["image_pred"]
         
-        
         outputs = {}    
         if self.superAnimal_kp_ON:
-            target_img_coordinates_tensor_superAni, superAni_target_img_with_kps = self.process_target_images_folder(iteration, self.pose_update_interval)
             
             for i in range(pose.shape[0]):    
                 dir_path = f'{self.path_to_save_images}/diff_pose/target_img/'
@@ -505,6 +492,9 @@ class Articulator(BaseModel):
                 rendered_image_path = f'{dir_path}{i}_rendered_image.png'
             
                 rendered_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, image_name2 = self.get_superAni_kps_and_image(rendered_image_path)
+                target_img_coordinates_tensor_superAni, superAni_target_img_with_kps = self.process_target_images_folder(iteration, self.pose_update_interval)
+            
+            import ipdb; ipdb.set_trace()
             
             superAnimal_kp_dict = self.get_superAnimal_kp(
                 articulated_mesh,
@@ -570,10 +560,6 @@ class Articulator(BaseModel):
                 #bones_predictor_outputs["bones_pred"],    # this is a rest pose    # bones_predictor_outputs["bones_pred"].shape is torch.Size([4, 20, 2, 3]), 4 is batch size, 20 is number of bones, 2 are the two endpoints of the bones and 3 means the 3D point defining one of the end points of the line segment in 3D that defines the bone 
                 renderer_outputs["mask_pred"],
                 renderer_outputs["image_pred"],            # renderer_outputs["image_pred"].shape is torch.Size([4, 3, 256, 256]), 4 is batch size, 3 is RGB channels, 256 is image resolution
-                rendered_img_coordinates_tensor_superAni,
-                target_img_coordinates_tensor_superAni,
-                superAni_rendered_img_with_kps,
-                superAni_target_img_with_kps,
                 target_image = batch["image"] if self.target_image_fixed else target_img_rgb,                  # batch["image"] is fixed Target images (generated from SD), target_img_rgb randomly generated per iteration
             )
             end_time = time.time()  # Record the end time
@@ -603,10 +589,10 @@ class Articulator(BaseModel):
             # Computes the loss between the source and target keypoints
             print('Calculating l2 loss')
             # loss = nn_functional.mse_loss(rendered_keypoints, target_keypoints, reduction='mean')
-            model_outputs["rendered_kps"] = model_outputs["rendered_kps"].to(self.device)
+            model_outputs["rendered_img_coordinates_tensor_superAni"] = model_outputs["rendered_img_coordinates_tensor_superAni"].to(self.device)
             model_outputs["target_img_coordinates_tensor_superAni"] = model_outputs["target_img_coordinates_tensor_superAni"].to(self.device)
 
-            loss = nn_functional.mse_loss(model_outputs["rendered_kps"], model_outputs["target_img_coordinates_tensor_superAni"], reduction='mean')
+            loss = nn_functional.mse_loss(model_outputs["rendered_img_coordinates_tensor_superAni"], model_outputs["target_img_coordinates_tensor_superAni"], reduction='mean')
             
         else:
             # Keypoint loss
@@ -812,7 +798,6 @@ class Articulator(BaseModel):
         # bones_all = self.closest_visible_points(bones_all, articulated_mesh.v_pos, visible_vertices) # , eroded_mask)
         # # bones_closest_pts_2D_proj_all_kp40 = geometry_utils.project_points(bones_all, mvp)
         # print("kps_img_resolu", kps_img_resolu)
-        # import ipdb; ipdb.set_trace()
         
         # return kps_img_resolu
           
@@ -912,7 +897,6 @@ class Articulator(BaseModel):
         
         projected_visible_v_in_2D = geometry_utils.project_points(visible_v_position, mvp)  
     
-        # import ipdb; ipdb.set_trace()
         # Convert to Pixel Coordinates of the mask
         pixel_projected_visible_v_in_2D = (projected_visible_v_in_2D + 1) * eroded_mask.size(1)/2
         vertices_inside_mask = self.get_vertices_inside_mask(pixel_projected_visible_v_in_2D, eroded_mask)
