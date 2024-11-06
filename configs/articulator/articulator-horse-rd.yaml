@@ -24,10 +24,11 @@ model:
 
   gltf_skin:
     _target_: dos.components.skinning.gltf_skinning.Skin
-    gltf_file_path: /users/oishideb/oishideb/Horse_stallion_IP.gltf
+    # gltf_file_path: /users/oishideb/oishideb/Horse_stallion_IP.gltf
+    gltf_file_path: /users/oishideb/oishideb/HorseFemaleRD/HorseFemaleRD.gltf
 
   path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2411_Horse
-  target_image_path: /work/oishideb/horse_sd_generated_3_new_mvDream/000009_rgb.png
+  target_image_folder: /work/oishideb/horse_sd_generated_3_new_mvDream
   superAnimal_kp_ON: True
   super_Ani_head_kps_ON: False
   super_Ani_body_kps_ON: False
@@ -42,7 +43,8 @@ model:
   # shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_LowPoly.obj
   # shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_stallion_LowPoly.obj
   # shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_foal_highPoly.obj        # has 5907 vertices
-  shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_foal_LowPoly.obj
+  # shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_foal_LowPoly.obj
+  shape_template_path: /users/oishideb/oishideb/HorseFemaleRD/HorseFemaleRD.obj
   # shape_template_path: /users/oishideb/oishideb/horse-v4.obj
   enable_texture_predictor: False
   
@@ -107,7 +109,7 @@ model:
     lr: 0.1  # For DeepFloyd+SDS
     lr_l2: 0.1  # For SD+SDS  1e4
     # seed: 8 # 6
-    num_inference_steps: 50
+    num_inference_steps: 1
     guidance_scale: 50
     dds: False
     select_diffusion_option: 'sd' # Options are sd, sd_XL, df, sd_dds_loss  # by default is sds loss
