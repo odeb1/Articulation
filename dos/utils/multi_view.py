@@ -257,9 +257,11 @@ def poses_along_azimuth(size, device, update_interval, batch_number=0, iteration
     theta = np.deg2rad(theta)
     
     if multi_view_option == '2_side_views_only_in_batch':
+        # Side view 1 at 45 degrees and side view 2 at 135 degrees
+        phis = torch.tensor([np.deg2rad(45), np.deg2rad(315)], dtype=torch.float, device=device)
+    elif multi_view_option == '4_side_views_only_in_batch':
         # Side view 1 at 90 degrees and side view 2 at -90 degrees
-        phis = torch.tensor([np.deg2rad(90), np.deg2rad(-90)], dtype=torch.float, device=device)
-        
+        phis = torch.tensor([np.deg2rad(45), np.deg2rad(315), np.deg2rad(225), np.deg2rad(135)], dtype=torch.float, device=device)    
     elif multi_view_option == 'guidance_and_rand_views_in_batch':
         # phis selects two values, a fixed side view (90 degrees) and a random view each iteration.
                                                 # Here, 1 represents Size i.e 1 random view
