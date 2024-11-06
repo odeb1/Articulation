@@ -16,16 +16,11 @@ import torchvision.transforms.functional as F
 import torchvision
 from PIL import Image, ImageDraw
 import io
-
-from dos.components.fuse.compute_correspond import \
-    ComputeCorrespond  # compute_correspondences_sd_dino
 from dos.utils.correspondence import (draw_correspondences_1_image,
                                       padding_tensor, resize,
                                       tensor_to_matplotlib_figure,
                                       draw_correspondences_combined)
 
-from ..components.diffusion_model_text_to_image.diffusion_sds import \
-    DiffusionForTargetImg
 from ..components.skinning.bones_estimation import BonesEstimator
 from ..components.skinning.skinning import mesh_skinning
 from ..modules.renderer import Renderer
@@ -39,17 +34,6 @@ from ..utils import visuals as visuals_utils
 from .base import BaseModel
 from dos.nvdiffrec.render.mesh import make_mesh
 # from ..models.nelder_mead_optim import NelderMeadOptim
-
-import deeplabcut
-from deeplabcut.pose_estimation_pytorch.apis.analyze_images import (
-    analyze_images,
-    superanimal_analyze_images,
-    create_labeled_images_from_predictions,
-    create_labeled_images_from_predictions_updated,
-)
-
-from deeplabcut.utils import auxfun_videos, auxiliaryfunctions
-from deeplabcut.modelzoo.utils import get_superanimal_colormaps
 
 class Articulator(BaseModel):
     """
@@ -152,6 +136,30 @@ class Articulator(BaseModel):
         self.all_4_legs_kps_ON = all_4_legs_kps_ON
         self.pose_update_interval = pose_update_interval
 
+        # Load dependencies based on the condition
+        self.load_dependencies()
+
+    def load_dependencies(self):
+        # Conditionally import libraries based on superAnimal_kp_ON
+        if self.superAnimal_kp_ON:
+            global deeplabcut, analyze_images, superanimal_analyze_images, create_labeled_images_from_predictions
+            global auxfun_videos, auxiliaryfunctions, get_superanimal_colormaps
+            
+            import deeplabcut
+            from deeplabcut.pose_estimation_pytorch.apis.analyze_images import (
+                analyze_images,
+                superanimal_analyze_images,
+                create_labeled_images_from_predictions,
+            )
+            from deeplabcut.utils import auxfun_videos, auxiliaryfunctions
+            from deeplabcut.modelzoo.utils import get_superanimal_colormaps
+        else:
+            global ComputeCorrespond, DiffusionForTargetImg
+
+            from dos.components.fuse.compute_correspond import ComputeCorrespond
+            from ..components.diffusion_model_text_to_image.diffusion_sds import DiffusionForTargetImg       
+
+        
     def _load_shape_template(self, shape_template_path, fit_inside_unit_cube=False):
         mesh = load_mesh(shape_template_path)
         # position the mesh inside the unit cube
@@ -474,7 +482,6 @@ class Articulator(BaseModel):
         #     file.write(f"The 'get_camera_extrinsics_and_mvp_from_pose' compute took {end_time - start_time} seconds to run.\n")
         print(f"The 'get_camera_extrinsics_and_mvp_from_pose' function took {end_time - start_time} seconds to run.")
         
-        
         # Creates an empty tensor to hold the final result
         # all_generated_target_img shape is [num_pose, 3, 256, 256]
 
@@ -483,88 +490,22 @@ class Articulator(BaseModel):
         
         rendered_image = renderer_outputs["image_pred"]
         
-        # GENERATING TARGET IMAGES USING DIFFUSION (SD or DF or MV-Dream)
-        if self.use_gt_target_img:
-            target_img_rgb = batch["image"]
-        else:
-            # if self._current_iteration % self.sds_every_n_iter == 0 or self._target_img_rgb is None:
-            target_img_rgb = self.diffusion_Text_to_Target_Img.run_experiment(
-                input_image=renderer_outputs["image_pred"].detach(),
-                image_fr_path=False,
-                direction = direction,
-                c2w = w2c.permute(0, 2, 1),     # Transpose the 3D matrix
-            )
-            #     self._target_img_rgb = target_img_rgb
-            # target_img_rgb = self._target_img_rgb
         
-        
-        # # ------------------------------------------------
-        # # TARGET IMAGE - SUPER ANIMAL
-        
-        # # Open the original image - for single image
-        # image = Image.open(self.target_image_folder)
-        # # Resize the image to 840x840
-        # resized_image = image.resize((840, 840), Image.LANCZOS)
-        # # Save the resized image
-        # resized_image_path = self.target_image_folder # Set a path to save the resized image
-        # resized_image.save(resized_image_path)
-        # target_img_coordinates_tensor_superAni, superAni_target_img_with_kps, image_name1 = self.get_superAni_kps_and_image(resized_image_path)
-        
-        
-        # # Loop through each file in the target image folder
-        # for filename in os.listdir(self.target_image_folder):
-        #     # Construct the full path to the image file
-        #     image_path = os.path.join(self.target_image_folder, filename)
-
-        #     # Check if the file is an image (e.g., .jpg, .png)
-        #     if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-        #         # Open the original image
-        #         image = Image.open(image_path)
-
-        #         # Resize the image to 840x840
-        #         resized_image = image.resize((840, 840), Image.LANCZOS)
-
-        #         # Save the resized image (overwrite the original or specify a new path)
-        #         resized_image_path = os.path.join(self.target_image_folder, f"resized_{filename}")
-        #         resized_image.save(resized_image_path)
-
-        #         # Process the resized image with get_superAni_kps_and_image
-        #         target_img_coordinates_tensor_superAni, superAni_target_img_with_kps, image_name1 = self.get_superAni_kps_and_image(resized_image_path)
-
-        
-        
-        
-        target_img_coordinates_tensor_superAni, superAni_target_img_with_kps = self.process_target_images_folder(iteration, self.pose_update_interval)
-        
-        # # Inserts the new image into a dictionary
-        # # all_generated_target_img["target_img_NO_kps"].shape is [1, 3, 256, 256]
-        # all_generated_target_img["target_img_NO_kps"] = target_img_rgb
-        # Inserts the new image into the final tensor
-        # resizes the image to the target resolution
-        target_img_rgb = torch.nn.functional.interpolate(target_img_rgb, size=renderer_outputs["image_pred"].shape[2:], mode='bilinear', align_corners=False)
-        for i in range(pose.shape[0]):
-            # target_img_rgb.shape is [1, 3, 256, 256]
-            target_image_PIL = F.to_pil_image(target_img_rgb[0])
-            dir_path = f'{self.path_to_save_images}/diff_pose/target_img/'
-            # Create the directory if it doesn't exist
-            os.makedirs(dir_path, exist_ok=True)
-            # Save the image
-            target_image_PIL.save(f'{dir_path}{i}_diff_pose_target_image.png', bbox_inches='tight')
-            
-            
-            # RENDERED Image ----------------------------------------------
-            
-            rendered_image_PIL = F.to_pil_image(rendered_image[0])
-            rendered_image_PIL = resize(rendered_image_PIL, target_res = 840, resize=True, to_pil=True)
-            # rendered_image_PIL_superAni = resize(rendered_image_PIL, target_res = 256, resize=True, to_pil=True)
-            rendered_image_PIL.save(f'{dir_path}{i}_rendered_image.png', bbox_inches='tight', pad_inches=0)
-            rendered_image_path = f'{dir_path}{i}_rendered_image.png'
-            
-            
-            rendered_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, image_name2 = self.get_superAni_kps_and_image(rendered_image_path)
-            
         outputs = {}    
         if self.superAnimal_kp_ON:
+            target_img_coordinates_tensor_superAni, superAni_target_img_with_kps = self.process_target_images_folder(iteration, self.pose_update_interval)
+            
+            for i in range(pose.shape[0]):    
+                dir_path = f'{self.path_to_save_images}/diff_pose/target_img/'
+                # RENDERED Image ----------------------------------------------
+                rendered_image_PIL = F.to_pil_image(rendered_image[0])
+                rendered_image_PIL = resize(rendered_image_PIL, target_res = 840, resize=True, to_pil=True)
+                # rendered_image_PIL_superAni = resize(rendered_image_PIL, target_res = 256, resize=True, to_pil=True)
+                rendered_image_PIL.save(f'{dir_path}{i}_rendered_image.png', bbox_inches='tight', pad_inches=0)
+                rendered_image_path = f'{dir_path}{i}_rendered_image.png'
+            
+                rendered_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, image_name2 = self.get_superAni_kps_and_image(rendered_image_path)
+            
             superAnimal_kp_dict = self.get_superAnimal_kp(
                 articulated_mesh,
                 mvp,                                       
@@ -579,7 +520,45 @@ class Articulator(BaseModel):
             )
             
             outputs.update(superAnimal_kp_dict)
-        else:    
+        else:
+            
+            # GENERATING TARGET IMAGES USING DIFFUSION (SD or DF or MV-Dream)
+            if self.use_gt_target_img:
+                target_img_rgb = batch["image"]
+            else:
+                # if self._current_iteration % self.sds_every_n_iter == 0 or self._target_img_rgb is None:
+                target_img_rgb = self.diffusion_Text_to_Target_Img.run_experiment(
+                    input_image=renderer_outputs["image_pred"].detach(),
+                    image_fr_path=False,
+                    direction = direction,
+                    c2w = w2c.permute(0, 2, 1),     # Transpose the 3D matrix
+                )
+                #     self._target_img_rgb = target_img_rgb
+                # target_img_rgb = self._target_img_rgb
+
+            # # Inserts the new image into a dictionary
+            # # all_generated_target_img["target_img_NO_kps"].shape is [1, 3, 256, 256]
+            # all_generated_target_img["target_img_NO_kps"] = target_img_rgb
+            # Inserts the new image into the final tensor
+            # resizes the image to the target resolution
+            target_img_rgb = torch.nn.functional.interpolate(target_img_rgb, size=renderer_outputs["image_pred"].shape[2:], mode='bilinear', align_corners=False)
+            for i in range(pose.shape[0]):
+                # target_img_rgb.shape is [1, 3, 256, 256]
+                target_image_PIL = F.to_pil_image(target_img_rgb[0])
+                dir_path = f'{self.path_to_save_images}/diff_pose/target_img/'
+                # Create the directory if it doesn't exist
+                os.makedirs(dir_path, exist_ok=True)
+                # Save the image
+                target_image_PIL.save(f'{dir_path}{i}_diff_pose_target_image.png', bbox_inches='tight')
+
+                # RENDERED Image ----------------------------------------------
+                rendered_image_PIL = F.to_pil_image(rendered_image[0])
+                rendered_image_PIL = resize(rendered_image_PIL, target_res = 840, resize=True, to_pil=True)
+                # rendered_image_PIL_superAni = resize(rendered_image_PIL, target_res = 256, resize=True, to_pil=True)
+                rendered_image_PIL.save(f'{dir_path}{i}_rendered_image.png', bbox_inches='tight', pad_inches=0)
+                rendered_image_path = f'{dir_path}{i}_rendered_image.png'
+
+                
             # print('target_img_rgb.shape', target_img_rgb.shape)
             start_time = time.time()
             # compute_correspondences for keypoint loss
@@ -737,7 +716,6 @@ class Articulator(BaseModel):
                 model_outputs["superAni_rendered_img_with_kps"].savefig(f'{dir_path}/{iteration}_superAni_rendered_image_with_kps_list.png', bbox_inches='tight', pad_inches=0)
             
                 superAni_render_target_combined_fig = self.combine_and_save_matplot_figures(model_outputs["superAni_rendered_img_with_kps"], model_outputs["superAni_target_img_with_kps"], iteration)
-            
         else:
             for index, item in enumerate(model_outputs["rendered_image_with_kps"]):
                 dir_path = f'{path_to_save_img_per_iteration}/rendered_target_image_with_wo_kps_list/{index}_pose'
@@ -773,24 +751,7 @@ class Articulator(BaseModel):
                     os.makedirs(dir_path, exist_ok=True)
                     model_outputs["cyc_check_combined_image_list"][index].save(f'{dir_path}/{iteration}_cyc_check_combined_image_list.png', bbox_inches='tight')
 
-            #     # This image is a Matplotlib Object
-            #     dir_path = f'{path_to_save_img_per_iteration}/cycle_consi/{index}_pose'
-            #     os.makedirs(dir_path, exist_ok=True)
-            #     plt.gcf().set_facecolor('grey')
-            #     model_outputs["cycle_consi_image_with_kps"][index].savefig(f'{dir_path}/{iteration}_cycle_consi.png', bbox_inches='tight')
-
-            #     # This image is a Matplotlib Object
-            #     dir_path = f'{path_to_save_img_per_iteration}/rendered_image_with_kps_list_after_cyc_check/{index}_pose'
-            #     os.makedirs(dir_path, exist_ok=True)
-            #     plt.gcf().set_facecolor('grey')
-            #     model_outputs["rendered_image_with_kps_list_after_cyc_check"][index].savefig(f'{dir_path}/{iteration}_rendered_image_with_kps_list_after_cyc_check.png', bbox_inches='tight')
-
-            #     # This image is a Matplotlib Object
-            #     dir_path = f'{path_to_save_img_per_iteration}/target_image_with_kps_list_after_cyc_check/{index}_pose'
-            #     os.makedirs(dir_path, exist_ok=True)
-            #     plt.gcf().set_facecolor('grey')
-            #     model_outputs["target_image_with_kps_list_after_cyc_check"][index].savefig(f'{dir_path}/{iteration}_target_image_with_kps_list_after_cyc_check.png', bbox_inches='tight')
-
+            
             end_time = time.time()  # Record the end time
             print(f"The 'Saving img for every iterations' took {end_time - start_time} seconds to run.")
             
