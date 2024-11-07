@@ -83,7 +83,6 @@ class Articulator(BaseModel):
         save_individual_img = False,
         multi_view_optimise_option = 'random_phi_each_step_along_azimuth',
         pose_update_interval = 20,
-        # nelder_mead_optim = None,
         
     ):
         super().__init__()
@@ -483,18 +482,18 @@ class Articulator(BaseModel):
         if self.superAnimal_kp_ON:
             
             for i in range(pose.shape[0]):    
-                dir_path = f'{self.path_to_save_images}/diff_pose/target_img/'
+                dir_path = f'{self.path_to_save_images}/diff_pose/rendered_img/'
                 # RENDERED Image ----------------------------------------------
                 rendered_image_PIL = F.to_pil_image(rendered_image[0])
                 rendered_image_PIL = resize(rendered_image_PIL, target_res = 840, resize=True, to_pil=True)
                 # rendered_image_PIL_superAni = resize(rendered_image_PIL, target_res = 256, resize=True, to_pil=True)
-                rendered_image_PIL.save(f'{dir_path}{i}_rendered_image.png', bbox_inches='tight', pad_inches=0)
-                rendered_image_path = f'{dir_path}{i}_rendered_image.png'
+                rendered_image_PIL.save(f'{dir_path}/{i}_rendered_image.png', bbox_inches='tight', pad_inches=0)
+                rendered_image_path = f'{dir_path}/{i}_rendered_image.png'
             
                 rendered_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, image_name2 = self.get_superAni_kps_and_image(rendered_image_path)
                 target_img_coordinates_tensor_superAni, superAni_target_img_with_kps = self.process_target_images_folder(iteration, self.pose_update_interval)
             
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
             
             superAnimal_kp_dict = self.get_superAnimal_kp(
                 articulated_mesh,
@@ -542,11 +541,12 @@ class Articulator(BaseModel):
                 target_image_PIL.save(f'{dir_path}{i}_diff_pose_target_image.png', bbox_inches='tight')
 
                 # RENDERED Image ----------------------------------------------
+                dir_path = f'{self.path_to_save_images}/diff_pose/rendered_img/'
                 rendered_image_PIL = F.to_pil_image(rendered_image[0])
                 rendered_image_PIL = resize(rendered_image_PIL, target_res = 840, resize=True, to_pil=True)
                 # rendered_image_PIL_superAni = resize(rendered_image_PIL, target_res = 256, resize=True, to_pil=True)
                 rendered_image_PIL.save(f'{dir_path}{i}_rendered_image.png', bbox_inches='tight', pad_inches=0)
-                rendered_image_path = f'{dir_path}{i}_rendered_image.png'
+                
 
                 
             # print('target_img_rgb.shape', target_img_rgb.shape)
@@ -585,7 +585,7 @@ class Articulator(BaseModel):
     def get_loss_dict(self, model_outputs, batch, metrics_dict):
         
         if self.superAnimal_kp_ON:
-            # Keypoint loss
+            # Supervised Keypoint loss
             # Computes the loss between the source and target keypoints
             print('Calculating l2 loss')
             # loss = nn_functional.mse_loss(rendered_keypoints, target_keypoints, reduction='mean')
@@ -593,9 +593,8 @@ class Articulator(BaseModel):
             model_outputs["target_img_coordinates_tensor_superAni"] = model_outputs["target_img_coordinates_tensor_superAni"].to(self.device)
 
             loss = nn_functional.mse_loss(model_outputs["rendered_img_coordinates_tensor_superAni"], model_outputs["target_img_coordinates_tensor_superAni"], reduction='mean')
-            
         else:
-            # Keypoint loss
+            # Unsupervised Keypoint loss
             # Computes the loss between the source and target keypoints
             print('Calculating l2 loss')
             # loss = nn_functional.mse_loss(rendered_keypoints, target_keypoints, reduction='mean')
@@ -692,7 +691,8 @@ class Articulator(BaseModel):
         start_time = time.time()
         
         if self.superAnimal_kp_ON:
-            for index, item in enumerate(model_outputs["rendered_kps"]):
+            # for index, item in enumerate(model_outputs["rendered_image_with_kp
+            for index in range(self.num_pose_for_optim):
                 dir_path = f'{path_to_save_img_per_iteration}/superAni_target_image_with_wo_kps_list/{index}_pose'
                 os.makedirs(dir_path, exist_ok=True)
                 model_outputs["superAni_target_img_with_kps"].savefig(f'{dir_path}/{iteration}_superAni_target_image_with_wo_kps_list.png', bbox_inches='tight', pad_inches=0)
