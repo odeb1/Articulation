@@ -167,9 +167,9 @@ class Articulator(BaseModel):
         return mesh
 
     def get_superAnimal_kp(
-        self, articulated_mesh, mvp, renderer, bones, rendered_mask, rendered_image, rendered_img_coordinates_tensor_superAni, target_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, superAni_target_img_with_kps
+        self, articulated_mesh, mvp, renderer, bones, rendered_mask, rendered_image, rendered_img_coordinates_tensor_superAni, rendered_images_with_kps_batch_superAni, target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni
     ):
-       
+        
         # All the visible_vertices in 2d
         # visible_vertices.shape is torch.Size([2, 31070]) 
         visible_vertices = mesh_utils.get_visible_vertices(                                                  
@@ -179,19 +179,16 @@ class Articulator(BaseModel):
         eroded_mask = self.mask_erode_tensor(rendered_mask)
         
         if self.mode_kps_selection == "kps_based_on_superAnimal":
-            rendered_img_coordinates_tensor_superAni = self.kps_based_on_superAnimal(rendered_image, mvp, visible_vertices, articulated_mesh, eroded_mask, self.num_sample_farthest_points, rendered_img_coordinates_tensor_superAni)
+            rendered_img_coordinates_tensor_batch_superAni = self.kps_based_on_superAnimal(rendered_image, mvp, visible_vertices, articulated_mesh, eroded_mask, self.num_sample_farthest_points, rendered_img_coordinates_tensor_superAni)
         
         output_dict = {}
         
-        superAni_render_target_combined_fig = self.combine_and_save_matplot_figures(superAni_rendered_img_with_kps, superAni_target_img_with_kps, index=00)
-            
         output_dict = {
         # "rendered_kps": kps_img_resolu,           
-        "rendered_img_coordinates_tensor_superAni": rendered_img_coordinates_tensor_superAni,
+        "rendered_img_coordinates_tensor_batch_superAni": rendered_img_coordinates_tensor_batch_superAni,
         "target_img_coordinates_tensor_superAni": target_img_coordinates_tensor_superAni,
-        "superAni_rendered_img_with_kps": superAni_rendered_img_with_kps,
-        "superAni_target_img_with_kps": superAni_target_img_with_kps,
-        "superAni_render_target_combined_fig": superAni_render_target_combined_fig,
+        "rendered_images_with_kps_batch_superAni": rendered_images_with_kps_batch_superAni,
+        "target_images_with_kps_batch_superAni": target_images_with_kps_batch_superAni,
         }        
         
         return output_dict
@@ -480,6 +477,10 @@ class Articulator(BaseModel):
         
         outputs = {}    
         if self.superAnimal_kp_ON:
+            resized_to_840_folder_path = self.resize_images_in_folder(self.target_image_folder)
+            
+            rendered_keypoints_batch = []
+            rendered_images_with_kps_batch_superAni = []
             
             for i in range(pose.shape[0]):    
                 dir_path = f'{self.path_to_save_images}/diff_pose/rendered_img/'
@@ -490,10 +491,21 @@ class Articulator(BaseModel):
                 rendered_image_PIL.save(f'{dir_path}/{i}_rendered_image.png', bbox_inches='tight', pad_inches=0)
                 rendered_image_path = f'{dir_path}/{i}_rendered_image.png'
             
-                rendered_img_coordinates_tensor_superAni, superAni_rendered_img_with_kps, image_name2 = self.get_superAni_kps_and_image(rendered_image_path)
-                target_img_coordinates_tensor_superAni, superAni_target_img_with_kps = self.process_target_images_folder(iteration, self.pose_update_interval)
+                rendered_img_coordinates_tensor_superAni, rendered_images_with_kps_superAni, image_name2 = self.get_superAni_kps_and_image(rendered_image_path)
+                
+                # Append the results to the batch lists
+                rendered_keypoints_batch.append(rendered_img_coordinates_tensor_superAni)
+                rendered_images_with_kps_batch_superAni.append(rendered_images_with_kps_superAni)
+    
+            # Stack keypoints into a single tensor of shape [batch_size, num_keypoints, 2]
+            rendered_img_coordinates_tensor_superAni = torch.stack(rendered_keypoints_batch, dim=0)
             
-            # import ipdb; ipdb.set_trace()
+            # # This option is when Batch size is 1 for SuperAni Target Images
+            # target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni = self.process_target_images_folder(iteration, resized_to_840_folder_path, self.pose_update_interval)
+            
+            
+            target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni = self.process_target_images_folder_as_Batch(resized_to_840_folder_path)
+            
             
             superAnimal_kp_dict = self.get_superAnimal_kp(
                 articulated_mesh,
@@ -503,9 +515,9 @@ class Articulator(BaseModel):
                 renderer_outputs["mask_pred"],
                 renderer_outputs["image_pred"],
                 rendered_img_coordinates_tensor_superAni,
+                rendered_images_with_kps_batch_superAni,
                 target_img_coordinates_tensor_superAni,
-                superAni_rendered_img_with_kps,
-                superAni_target_img_with_kps,
+                target_images_with_kps_batch_superAni,
             )
             
             outputs.update(superAnimal_kp_dict)
@@ -589,10 +601,10 @@ class Articulator(BaseModel):
             # Computes the loss between the source and target keypoints
             print('Calculating l2 loss')
             # loss = nn_functional.mse_loss(rendered_keypoints, target_keypoints, reduction='mean')
-            model_outputs["rendered_img_coordinates_tensor_superAni"] = model_outputs["rendered_img_coordinates_tensor_superAni"].to(self.device)
+            model_outputs["rendered_img_coordinates_tensor_batch_superAni"] = model_outputs["rendered_img_coordinates_tensor_batch_superAni"].to(self.device)
             model_outputs["target_img_coordinates_tensor_superAni"] = model_outputs["target_img_coordinates_tensor_superAni"].to(self.device)
 
-            loss = nn_functional.mse_loss(model_outputs["rendered_img_coordinates_tensor_superAni"], model_outputs["target_img_coordinates_tensor_superAni"], reduction='mean')
+            loss = nn_functional.mse_loss(model_outputs["rendered_img_coordinates_tensor_batch_superAni"], model_outputs["target_img_coordinates_tensor_superAni"], reduction='mean')
         else:
             # Unsupervised Keypoint loss
             # Computes the loss between the source and target keypoints
@@ -695,13 +707,16 @@ class Articulator(BaseModel):
             for index in range(self.num_pose_for_optim):
                 dir_path = f'{path_to_save_img_per_iteration}/superAni_target_image_with_wo_kps_list/{index}_pose'
                 os.makedirs(dir_path, exist_ok=True)
-                model_outputs["superAni_target_img_with_kps"].savefig(f'{dir_path}/{iteration}_superAni_target_image_with_wo_kps_list.png', bbox_inches='tight', pad_inches=0)
+                model_outputs["target_images_with_kps_batch_superAni"][index].savefig(f'{dir_path}/{iteration}_superAni_target_image_with_wo_kps_list.png', bbox_inches='tight', pad_inches=0)
 
                 dir_path = f'{path_to_save_img_per_iteration}/superAni_rendered_image_with_kps_list/{index}_pose'
                 os.makedirs(dir_path, exist_ok=True)
-                model_outputs["superAni_rendered_img_with_kps"].savefig(f'{dir_path}/{iteration}_superAni_rendered_image_with_kps_list.png', bbox_inches='tight', pad_inches=0)
-            
-                superAni_render_target_combined_fig = self.combine_and_save_matplot_figures(model_outputs["superAni_rendered_img_with_kps"], model_outputs["superAni_target_img_with_kps"], iteration)
+                model_outputs["rendered_images_with_kps_batch_superAni"][index].savefig(f'{dir_path}/{iteration}_superAni_rendered_image_with_kps_list.png', bbox_inches='tight', pad_inches=0)
+
+                dir_path = f'{path_to_save_img_per_iteration}/superAni_render_target_combined_fig/{index}_pose'
+                os.makedirs(dir_path, exist_ok=True)
+                superAni_render_target_combined_fig = self.combine_matplot_figures(model_outputs["rendered_images_with_kps_batch_superAni"][index], model_outputs["target_images_with_kps_batch_superAni"][index])
+                superAni_render_target_combined_fig.savefig(f'{dir_path}/{iteration}_superAni_render_target_combined_fig.png', bbox_inches='tight', pad_inches=0)
         else:
             for index, item in enumerate(model_outputs["rendered_image_with_kps"]):
                 dir_path = f'{path_to_save_img_per_iteration}/rendered_target_image_with_wo_kps_list/{index}_pose'
@@ -914,67 +929,67 @@ class Articulator(BaseModel):
         return kps_img_resolu
     
     def kps_based_on_superAnimal(self, rendered_image, mvp, visible_vertices, articulated_mesh, eroded_mask, num_samples, rendered_img_coordinates_tensor_superAni):
-            
         visible_v_coordinates_list = []
         # Loop over each batch
         for i in range(visible_vertices.size(0)):
             # Extract the visible vertex coordinates using the boolean mask from visible_vertices
             visible_v_coordinates = articulated_mesh.v_pos[i][visible_vertices[i].bool()]
             visible_v_coordinates_list.append(visible_v_coordinates)
+
         # Find the maximum number of visible vertices across all batches
         max_visible_vertices = max([tensor.size(0) for tensor in visible_v_coordinates_list])
+
         # Pad each tensor in the list to have shape [max_visible_vertices, 3]
         padded_tensors = []
         for tensor in visible_v_coordinates_list:
-            # Calculate the number of padding rows required
             padding_rows = max_visible_vertices - tensor.size(0)
-            # Create a padding tensor of shape [padding_rows, 3] filled with zeros (or any other value)
             padding = torch.zeros((padding_rows, 3), device=tensor.device, dtype=tensor.dtype)
-            # Concatenate the tensor and the padding
             padded_tensor = torch.cat([tensor, padding], dim=0)
             padded_tensors.append(padded_tensor)
+
         # Convert the list of padded tensors to a single tensor
-        visible_v_position = torch.stack(padded_tensors, dim=0)
-        
-        projected_visible_v_in_2D = geometry_utils.project_points(visible_v_position, mvp)  
-    
+        visible_v_position = torch.stack(padded_tensors, dim=0)  # Shape: [Batch size, max_visible_vertices, 3]
+
+        # Project the padded visible vertices to 2D using the MVP matrix
+        projected_visible_v_in_2D = geometry_utils.project_points(visible_v_position, mvp)  # Shape: [Batch size, max_visible_vertices, 2]
+
         # Convert to Pixel Coordinates of the mask
-        pixel_projected_visible_v_in_2D = (projected_visible_v_in_2D + 1) * eroded_mask.size(1)/2
-        vertices_inside_mask = self.get_vertices_inside_mask(pixel_projected_visible_v_in_2D, eroded_mask)
-        
-        # kps_img_resolu is of shape [1, 2024, 2]
-        kps_img_resolu = (vertices_inside_mask/256) * 840
-        
+        pixel_projected_visible_v_in_2D = (projected_visible_v_in_2D + 1) * eroded_mask.size(1) / 2
+
+        # Get vertices inside the mask for each batch
+        vertices_inside_mask = self.get_vertices_inside_mask(pixel_projected_visible_v_in_2D, eroded_mask)  # Shape: [Batch size, max_visible_vertices, 2]
+
+        # Convert to image resolution coordinates for each batch
+        kps_img_resolu = (vertices_inside_mask / 256) * 840  # Shape: [Batch size, max_visible_vertices, 2]
         device = kps_img_resolu.device
-        
-        # Remove the batch dimension for easier calculation (shape becomes [2024, 2] and [39, 2] respectively)
-        kps_img_resolu_2d = kps_img_resolu.squeeze(0)  # Shape: [2024, 2]
-        rendered_img_coordinates_2d = rendered_img_coordinates_tensor_superAni.squeeze(0).to(device)  # Shape: [39, 2]
 
-        # Calculate the pairwise distances between each point in kps_img_resolu and each point in rendered_img_coordinates_tensor_superAni
-        dists = torch.cdist(kps_img_resolu_2d, rendered_img_coordinates_2d)  # Shape: [2024, 39]
+        # Initialize list to collect closest keypoints for each batch
+        closest_kps_batch = []
 
-        # Find the index of the closest point in kps_img_resolu for each point in rendered_img_coordinates_tensor_superAni
-        min_dists, min_idx = dists.min(dim=0)  # Shape: [39] (the index of closest points)
+        # Loop over each batch in kps_img_resolu and rendered_img_coordinates_tensor_superAni
+        for batch_idx in range(kps_img_resolu.size(0)):
+            # Remove the batch dimension for easier calculation (shapes become [2024, 2] and [39, 2] respectively for each batch)
+            kps_img_resolu_2d = kps_img_resolu[batch_idx]  # Shape: [2024, 2]
+            rendered_img_coordinates_2d = rendered_img_coordinates_tensor_superAni[batch_idx].to(device)  # Shape: [39, 2]
 
-        # Gather the corresponding points from kps_img_resolu
-        closest_kps = kps_img_resolu_2d[min_idx]  # Shape: [39, 2]
+            # Calculate the pairwise distances between each point in kps_img_resolu and each point in rendered_img_coordinates_tensor_superAni
+            dists = torch.cdist(kps_img_resolu_2d, rendered_img_coordinates_2d)  # Shape: [2024, 39]
 
-        # Add back the batch dimension (to return the shape [1, 39, 2])
-        kps_img_resolu = closest_kps.unsqueeze(0) 
-        
-        # # project vertices/keypoints example
-        # # mesh.v_pos shape is torch.Size([2, 31070, 3])
-        # # mvp.shape is torch.Size([Batch size, 4, 4])
-        # # projected_vertices.shape is torch.Size([4, 31070, 2]), # mvp is model-view-projection
-        # projected_vertices = geometry_utils.project_points(articulated_mesh.v_pos, mvp)  
-        
-        # projected_vertices = projected_vertices[:, :num_samples, :]
-        # kps_img = projected_vertices[:,:,:][0] * rendered_image.shape[2]
-        
+            # Find the index of the closest point in kps_img_resolu for each point in rendered_img_coordinates_tensor_superAni
+            min_dists, min_idx = dists.min(dim=0)  # Shape: [39] (the index of closest points)
+
+            # Gather the corresponding points from kps_img_resolu
+            closest_kps = kps_img_resolu_2d[min_idx]  # Shape: [39, 2]
+
+            # Add the closest points for this batch to the list
+            closest_kps_batch.append(closest_kps)
+
+        # Stack the closest keypoints from each batch to form a tensor of shape [Batch size, 39, 2]
+        kps_img_resolu = torch.stack(closest_kps_batch, dim=0)  # Shape: [Batch size, 39, 2]
+
         return kps_img_resolu
-    
-    
+
+
     def closest_visible_points_in_2D(self, bones_midpts, mesh_v_pos, visible_vertices):
         """
         Find the closest visible points in the mesh to the given points.
@@ -1222,47 +1237,39 @@ class Articulator(BaseModel):
         combined_image.save(os.path.join(out_folder, f"{index}_rendered_and_target_img.png"))
         
 
-    def combine_and_save_matplot_figures(self, fig1, fig2, index=0):
-        # Create output folder if it doesn't exist
-        out_folder=f'{self.path_to_save_images}/superanimal_prediction/'
-        if not os.path.exists(out_folder):
-            os.makedirs(out_folder)
-        
-        out_folder_combined = f'{self.path_to_save_images}/superAni_rendered_target_combined/'
-        os.makedirs(out_folder_combined, exist_ok=True)
+    def combine_matplot_figures(self, fig1, fig2):
+        # Save fig1 to an in-memory buffer
+        buf1 = io.BytesIO()
+        fig1.savefig(buf1, format='png', bbox_inches='tight', pad_inches=0)
+        buf1.seek(0)  # Rewind to the start of the buffer
+        img1 = mpimg.imread(buf1)  # Load as image
 
-        # Save the individual figures as images
-        fig1_path = os.path.join(out_folder, f"{index}_superAni_rendered_img_with_kps.png")
-        fig2_path = os.path.join(out_folder, f"{index}_superAni_target_img_with_kps.png")
+        # Save fig2 to an in-memory buffer
+        buf2 = io.BytesIO()
+        fig2.savefig(buf2, format='png', bbox_inches='tight', pad_inches=0)
+        buf2.seek(0)  # Rewind to the start of the buffer
+        img2 = mpimg.imread(buf2)  # Load as image
 
-        fig1.savefig(fig1_path, bbox_inches='tight', pad_inches=0)
-        fig2.savefig(fig2_path, bbox_inches='tight', pad_inches=0)
+        # Create a new figure with side-by-side subplots
+        combined_fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
-        # Create a new figure to combine both images
-        combined_fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))  # Adjust figsize to control the size of the output
-
-        # Adjust subplot parameters to reduce space between subplots
-        plt.subplots_adjust(wspace=0, hspace=0)  # Set the horizontal space (wspace) to 0
-
-        # Load and display the saved images
-        img1 = mpimg.imread(fig1_path)
-        img2 = mpimg.imread(fig2_path)
-
+        # Display the images in the subplots
         ax1.imshow(img1)
         ax2.imshow(img2)
 
-        ax1.axis('off')  # Turn off axis for better visualization
+        # Remove axis for a cleaner look
+        ax1.axis('off')
         ax2.axis('off')
 
-        # Save the combined figure
-        combined_image_path = os.path.join(out_folder_combined, f"{index}_superAni_combined_rendered_and_target_img.png")
-        combined_fig.savefig(combined_image_path, bbox_inches='tight', pad_inches=0)
+        # Adjust subplot parameters to remove space between images
+        plt.subplots_adjust(wspace=0, hspace=0)
 
-        # Close the figures to free up memory
+        # Close buffers and original figures to free up memory
+        buf1.close()
+        buf2.close()
         plt.close(fig1)
         plt.close(fig2)
-        plt.close(combined_fig)
-        
+
         return combined_fig
 
     
@@ -1396,10 +1403,33 @@ class Articulator(BaseModel):
         # if len(all_coordinates) > 0:
         #     img_coordinates_tensor = torch.stack(all_coordinates)  
     
+
+    def resize_images_in_folder(self, folder_path, target_size=(840, 840)):
+        # Create a new folder to save resized images
+        resized_folder_path = os.path.join(folder_path, "resized_images")
+        os.makedirs(resized_folder_path, exist_ok=True)
+
+        # Iterate through each file in the folder
+        for filename in os.listdir(folder_path):
+            # Construct the full file path
+            file_path = os.path.join(folder_path, filename)
+
+            # Check if the file is an image
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                # Open the image
+                with Image.open(file_path) as img:
+                    # Resize the image
+                    resized_img = img.resize(target_size, Image.LANCZOS)
+
+                    # Save the resized image in the new folder
+                    resized_img.save(os.path.join(resized_folder_path, filename))
+
+        return resized_folder_path
+    
             
-    def process_target_images_folder(self, iteration, iterations_per_image=20):
+    def process_target_images_folder(self, iteration, resized_folder_path, iterations_per_image=20):
         # List all images in the target image folder and sort them for a consistent order
-        image_files = [f for f in os.listdir(self.target_image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        image_files = [f for f in os.listdir(resized_folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
         image_files.sort()  # Sort to ensure a consistent order
         # Calculate the image index based on the current iteration
         image_index = iteration // iterations_per_image
@@ -1408,19 +1438,39 @@ class Articulator(BaseModel):
             image_index = image_index % len(image_files)
         # Select the image file based on the calculated index
         filename = image_files[image_index]
-        image_path = os.path.join(self.target_image_folder, filename)
-        # Open the original image
-        image = Image.open(image_path)
-        # Resize the image to 840x840
-        resized_image = image.resize((840, 840), Image.LANCZOS)
+
         # Save the resized image (overwrite the original or specify a new path)
-        resized_image_path = os.path.join(self.target_image_folder, f"resized_{filename}")
-        
-        # To save the resized image
-        resized_image.save(resized_image_path)
+        image_path = os.path.join(resized_folder_path, f"resized_{filename}")
         
         # Process the resized image with get_superAni_kps_and_image
-        target_img_coordinates_tensor_superAni, superAni_target_img_with_kps, image_name1 = self.get_superAni_kps_and_image(resized_image_path)
+        target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni, image_name1 = self.get_superAni_kps_and_image(image_path)
         # Optionally, print or log the current iteration and image being used
         print(f"Iteration {iteration + 1}, using image: {filename}")
-        return target_img_coordinates_tensor_superAni, superAni_target_img_with_kps
+        return target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni
+    
+    def process_target_images_folder_as_Batch(self, resized_folder_path):
+        # List all images in the resized image folder and sort them for consistent order
+        image_files = [f for f in os.listdir(resized_folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        image_files.sort()  # Ensure consistent order
+
+        # Prepare lists to collect keypoints and images
+        keypoints_batch = []
+        images_with_kps_batch = []
+
+        # Process each image in the batch
+        for filename in image_files:
+            # Construct the full path to the image file
+            image_path = os.path.join(resized_folder_path, filename)
+
+            # Process the image with get_superAni_kps_and_image
+            target_img_coordinates_tensor, superAni_img_with_kps, image_name = self.get_superAni_kps_and_image(image_path)
+
+            # Append the results to the batch lists
+            keypoints_batch.append(target_img_coordinates_tensor)
+            images_with_kps_batch.append(superAni_img_with_kps)
+            
+        # Stack keypoints into a single tensor of shape [batch_size, num_keypoints, 2]
+        target_img_coordinates_tensor_superAni = torch.stack(keypoints_batch, dim=0)
+        
+        # Return the stacked keypoints tensor and the list of processed images with keypoints
+        return target_img_coordinates_tensor_superAni, images_with_kps_batch
