@@ -52,6 +52,10 @@ class Articulator(BaseModel):
         super_Ani_head_kps_ON,
         super_Ani_body_kps_ON,
         all_4_legs_kps_ON,
+        front_left_leg_kps_ON = False,
+        front_right_leg_kps_ON = False,
+        back_left_leg_kps_ON = False,
+        back_right_leg_kps_ON = False,
         superAnimal_kp_ON = True,
         num_sample_farthest_points = 100,
         mode_kps_selection = "kps_fr_sample_on_bone_line",
@@ -114,7 +118,6 @@ class Articulator(BaseModel):
         self.diffusion_Text_to_Target_Img = diffusion_Text_to_Target_Img if diffusion_Text_to_Target_Img is not None else DiffusionForTargetImg()
         self.sds_every_n_iter = sds_every_n_iter
         self.device = device
-        self.correspond = (correspond if correspond else ComputeCorrespond())
         self.random_camera_radius = random_camera_radius    # 1 if self.view_option == "single_view" else 2.5
         self.phi_range_for_optim = phi_range_for_optim
         self.phi_range_for_visual = phi_range_for_visual
@@ -133,10 +136,17 @@ class Articulator(BaseModel):
         self.super_Ani_head_kps_ON = super_Ani_head_kps_ON
         self.super_Ani_body_kps_ON = super_Ani_body_kps_ON
         self.all_4_legs_kps_ON = all_4_legs_kps_ON
+        self.front_left_leg_kps_ON = front_left_leg_kps_ON
+        self.front_right_leg_kps_ON = front_right_leg_kps_ON
+        self.back_left_leg_kps_ON = back_left_leg_kps_ON
+        self.back_right_leg_kps_ON = back_right_leg_kps_ON
         self.pose_update_interval = pose_update_interval
-
+        
         # Load dependencies based on the condition
         self.load_dependencies()
+        
+        if self.superAnimal_kp_ON == False:
+            self.correspond = (correspond if correspond else ComputeCorrespond())
 
     def load_dependencies(self):
         # Conditionally import libraries based on superAnimal_kp_ON
@@ -485,7 +495,7 @@ class Articulator(BaseModel):
             for i in range(pose.shape[0]):    
                 dir_path = f'{self.path_to_save_images}/diff_pose/rendered_img/'
                 # RENDERED Image ----------------------------------------------
-                rendered_image_PIL = F.to_pil_image(rendered_image[0])
+                rendered_image_PIL = F.to_pil_image(rendered_image[i])
                 rendered_image_PIL = resize(rendered_image_PIL, target_res = 840, resize=True, to_pil=True)
                 # rendered_image_PIL_superAni = resize(rendered_image_PIL, target_res = 256, resize=True, to_pil=True)
                 rendered_image_PIL.save(f'{dir_path}/{i}_rendered_image.png', bbox_inches='tight', pad_inches=0)
@@ -496,16 +506,14 @@ class Articulator(BaseModel):
                 # Append the results to the batch lists
                 rendered_keypoints_batch.append(rendered_img_coordinates_tensor_superAni)
                 rendered_images_with_kps_batch_superAni.append(rendered_images_with_kps_superAni)
-    
+                
             # Stack keypoints into a single tensor of shape [batch_size, num_keypoints, 2]
             rendered_img_coordinates_tensor_superAni = torch.stack(rendered_keypoints_batch, dim=0)
             
             # # This option is when Batch size is 1 for SuperAni Target Images
             # target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni = self.process_target_images_folder(iteration, resized_to_840_folder_path, self.pose_update_interval)
             
-            
             target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni = self.process_target_images_folder_as_Batch(resized_to_840_folder_path)
-            
             
             superAnimal_kp_dict = self.get_superAnimal_kp(
                 articulated_mesh,
@@ -1391,6 +1399,7 @@ class Articulator(BaseModel):
             fig.savefig(os.path.join(out_folder, f"vis_{image_name1}"), bbox_inches='tight', pad_inches=0)
             plt.close(fig)
         
+        # shape of img_coordinates_tensor is [kp, 2]
         return img_coordinates_tensor, fig, image_name1
 
 
