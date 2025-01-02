@@ -50,6 +50,11 @@ class Articulator(BaseModel):
         num_sample_bone_line,
         target_image_folder,
         super_Ani_head_kps_ON,
+        super_Ani_all_kps_except_face_ON,
+        super_Ani_body_n_front_legs_ON,
+        super_Ani_body_neck_front_legs_ON,
+        super_Ani_face_kps_ON,
+        super_Ani_neck_kps_ON,
         super_Ani_body_kps_ON,
         all_4_legs_kps_ON,
         front_left_leg_kps_ON = False,
@@ -85,7 +90,7 @@ class Articulator(BaseModel):
         seed = 50,
         target_image_fixed = False,
         save_individual_img = False,
-        multi_view_optimise_option = 'random_phi_each_step_along_azimuth',
+        multi_view_optimise_option = '4_side_views_only_in_batch',
         pose_update_interval = 20,
         
     ):
@@ -134,6 +139,11 @@ class Articulator(BaseModel):
         self.target_image_folder = target_image_folder
         self.superAnimal_kp_ON = superAnimal_kp_ON
         self.super_Ani_head_kps_ON = super_Ani_head_kps_ON
+        self.super_Ani_all_kps_except_face_ON = super_Ani_all_kps_except_face_ON
+        self.super_Ani_body_n_front_legs_ON = super_Ani_body_n_front_legs_ON
+        self.super_Ani_body_neck_front_legs_ON = super_Ani_body_neck_front_legs_ON
+        self.super_Ani_face_kps_ON = super_Ani_face_kps_ON
+        self.super_Ani_neck_kps_ON = super_Ani_neck_kps_ON
         self.super_Ani_body_kps_ON = super_Ani_body_kps_ON
         self.all_4_legs_kps_ON = all_4_legs_kps_ON
         self.front_left_leg_kps_ON = front_left_leg_kps_ON
@@ -164,9 +174,11 @@ class Articulator(BaseModel):
             from deeplabcut.modelzoo.utils import get_superanimal_colormaps
         else:
             global ComputeCorrespond, DiffusionForTargetImg
-
-            from dos.components.fuse.compute_correspond import ComputeCorrespond
-            from ..components.diffusion_model_text_to_image.diffusion_sds import DiffusionForTargetImg       
+            print("superAnimal_kp_ON option is off")
+            # # Uncomment it if using correspondences
+            
+            # from dos.components.fuse.compute_correspond import ComputeCorrespond
+            # from ..components.diffusion_model_text_to_image.diffusion_sds import DiffusionForTargetImg       
 
         
     def _load_shape_template(self, shape_template_path, fit_inside_unit_cube=False):
@@ -177,7 +189,8 @@ class Articulator(BaseModel):
         return mesh
 
     def get_superAnimal_kp(
-        self, articulated_mesh, mvp, renderer, bones, rendered_mask, rendered_image, rendered_img_coordinates_tensor_superAni, rendered_images_with_kps_batch_superAni, target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni
+        self, articulated_mesh, mvp, renderer, bones, rendered_mask, rendered_image, rendered_img_coordinates_tensor_superAni, rendered_images_with_kps_batch_superAni, target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni,
+        skin_aux
     ):
         
         # All the visible_vertices in 2d
@@ -191,14 +204,28 @@ class Articulator(BaseModel):
         if self.mode_kps_selection == "kps_based_on_superAnimal":
             rendered_img_coordinates_tensor_batch_superAni = self.kps_based_on_superAnimal(rendered_image, mvp, visible_vertices, articulated_mesh, eroded_mask, self.num_sample_farthest_points, rendered_img_coordinates_tensor_superAni)
         
+
+        superAni_render_target_combined_fig_list = []
+
+        # Iterate over the pairs of images from the two lists
+        for rendered_image, target_image in zip(rendered_images_with_kps_batch_superAni, target_images_with_kps_batch_superAni):
+            # Combine the rendered and target image using the combine_matplot_figures function
+            combined_fig = self.combine_matplot_figures(rendered_image, target_image)
+
+            # Append the resulting combined figure to the list
+            superAni_render_target_combined_fig_list.append(combined_fig)
+        
         output_dict = {}
         
         output_dict = {
-        # "rendered_kps": kps_img_resolu,           
+        # "rendered_kps": kps_img_resolu,
+        "articulated_mesh": articulated_mesh,
+        "skin_aux": skin_aux,           
         "rendered_img_coordinates_tensor_batch_superAni": rendered_img_coordinates_tensor_batch_superAni,
         "target_img_coordinates_tensor_superAni": target_img_coordinates_tensor_superAni,
         "rendered_images_with_kps_batch_superAni": rendered_images_with_kps_batch_superAni,
         "target_images_with_kps_batch_superAni": target_images_with_kps_batch_superAni,
+        "superAni_render_target_combined_fig_list": superAni_render_target_combined_fig_list,
         }        
         
         return output_dict
@@ -387,10 +414,20 @@ class Articulator(BaseModel):
             
             # bones_rotations.shape is [1, 47, 4] for cow
             # mesh.v_pos.shape is [1, 7483, 3] for cow
+            
+            # shape of articulated_verts is [1, 7483, 3] for cow
+            # skin_aux is a dict with keys - ['global_joint_transforms', 'skinning_matrices']
+            # bones_rotations.shape is [1, 47, 4] for cow
+            # mesh.v_pos.shape is [1, 7483, 3]
             articulated_verts, skin_aux = self.gltf_skin.skin_mesh_with_rotations(mesh.v_pos, bones_rotations)
+            
+            self.draw_gltf_bones(articulated_verts, skin_aux, iteration)
+            
             articulated_mesh = make_mesh(
                 articulated_verts, mesh.t_pos_idx, mesh.v_tex, mesh.t_tex_idx, mesh.material
             )
+            
+            # posed_bones = skin_aux["posed_bones"] # doesnt work
             posed_bones = None
         else:
             articulated_mesh, skin_aux = mesh_skinning(
@@ -526,6 +563,7 @@ class Articulator(BaseModel):
                 rendered_images_with_kps_batch_superAni,
                 target_img_coordinates_tensor_superAni,
                 target_images_with_kps_batch_superAni,
+                skin_aux,
             )
             
             outputs.update(superAnimal_kp_dict)
@@ -595,34 +633,47 @@ class Articulator(BaseModel):
         
         outputs.update(renderer_outputs)        # renderer_outputs keys are dict_keys(['image_pred', 'mask_pred', 'albedo', 'shading'])
         ## Saving poses along the azimuth
-        self.save_pose_along_azimuth(articulated_mesh, material, self.path_to_save_images)      
+        self.save_pose_along_azimuth(articulated_mesh, material, self.path_to_save_images, iteration)      
     
         return outputs
 
     def get_metrics_dict(self, model_outputs, batch):
         return {}
 
-    def get_loss_dict(self, model_outputs, batch, metrics_dict):
+    def get_loss_dict(self, model_outputs, batch, metrics_dict, max_iterations=2000):
         
-        if self.superAnimal_kp_ON:
-            # Supervised Keypoint loss
-            # Computes the loss between the source and target keypoints
-            print('Calculating l2 loss')
-            # loss = nn_functional.mse_loss(rendered_keypoints, target_keypoints, reduction='mean')
-            model_outputs["rendered_img_coordinates_tensor_batch_superAni"] = model_outputs["rendered_img_coordinates_tensor_batch_superAni"].to(self.device)
-            model_outputs["target_img_coordinates_tensor_superAni"] = model_outputs["target_img_coordinates_tensor_superAni"].to(self.device)
+        loss_history = []
+        threshold = 10  # Number of iterations to check for no loss change
 
-            loss = nn_functional.mse_loss(model_outputs["rendered_img_coordinates_tensor_batch_superAni"], model_outputs["target_img_coordinates_tensor_superAni"], reduction='mean')
-        else:
-            # Unsupervised Keypoint loss
-            # Computes the loss between the source and target keypoints
-            print('Calculating l2 loss')
-            # loss = nn_functional.mse_loss(rendered_keypoints, target_keypoints, reduction='mean')
-            model_outputs["rendered_kps"] = model_outputs["rendered_kps"].to(self.device)
-            model_outputs["target_corres_kps"] = model_outputs["target_corres_kps"].to(self.device)
+        for iteration in range(max_iterations):
 
-            loss = nn_functional.mse_loss(model_outputs["rendered_kps"], model_outputs["target_corres_kps"], reduction='mean')
-       
+            if self.superAnimal_kp_ON:
+                # Supervised Keypoint loss
+                # Computes the loss between the source and target keypoints
+                # loss = nn_functional.mse_loss(rendered_keypoints, target_keypoints, reduction='mean')
+                model_outputs["rendered_img_coordinates_tensor_batch_superAni"] = model_outputs["rendered_img_coordinates_tensor_batch_superAni"].to(self.device)
+                model_outputs["target_img_coordinates_tensor_superAni"] = model_outputs["target_img_coordinates_tensor_superAni"].to(self.device)
+                
+                loss = nn_functional.mse_loss(model_outputs["rendered_img_coordinates_tensor_batch_superAni"], model_outputs["target_img_coordinates_tensor_superAni"], reduction='mean')
+            else:
+                # Unsupervised Keypoint loss
+                # Computes the loss between the source and target keypoints
+                # loss = nn_functional.mse_loss(rendered_keypoints, target_keypoints, reduction='mean')
+                model_outputs["rendered_kps"] = model_outputs["rendered_kps"].to(self.device)
+                model_outputs["target_corres_kps"] = model_outputs["target_corres_kps"].to(self.device)
+
+                loss = nn_functional.mse_loss(model_outputs["rendered_kps"], model_outputs["target_corres_kps"], reduction='mean')
+
+            # Track the loss
+            loss_history.append(loss)
+
+            # Check for no change in loss over the last `threshold` iterations
+            if len(loss_history) >= threshold:
+                last_losses = loss_history[-threshold:]
+                if len(set(last_losses)) == 1:  # All values are identical
+                    print(f"Stopping early at iteration {iteration} due to no change in loss.")
+                    break
+            
         return {"loss": loss}
 
     def get_visuals_dict(self, model_outputs, batch, num_visuals=1):
@@ -641,11 +692,11 @@ class Articulator(BaseModel):
 
         # TODO: render also rest pose
 
-        # Log skinned mesh
-        if self.gltf_skin is not None:
-            visuals_dict["skinned_mesh"] = self.gltf_skin.plot_skinned_mesh_3d(
-                model_outputs["articulated_mesh"].v_pos[0].detach().cpu(), 
-                model_outputs["skin_aux"]["global_joint_transforms"][0].detach().cpu())
+        # # Log skinned mesh
+        # if self.gltf_skin is not None:
+        #     visuals_dict["skinned_mesh"] = self.gltf_skin.plot_skinned_mesh_3d(
+        #         model_outputs["articulated_mesh"].v_pos[0].detach().cpu(), 
+        #         model_outputs["skin_aux"]["global_joint_transforms"][0].detach().cpu())
 
         return visuals_dict
     
@@ -680,7 +731,7 @@ class Articulator(BaseModel):
             
 
     ## Saving poses along the azimuth for Visualisation
-    def save_pose_along_azimuth(self, articulated_mesh, material, path_to_save_images):
+    def save_pose_along_azimuth(self, articulated_mesh, material, path_to_save_images, iteration):
         
         if self.view_option == "single_view":
             # Added for debugging purpose
@@ -698,7 +749,7 @@ class Articulator(BaseModel):
         for i in range(pose.shape[0]):
             rendered_image_PIL = F.to_pil_image(renderer_outputs["image_pred"][i])
             rendered_image_PIL = resize(rendered_image_PIL, target_res = 840, resize=True, to_pil=True)
-            dir_path = f'{path_to_save_images}/azimuth_pose/rendered_img/'
+            dir_path = f'{path_to_save_images}/azimuth_pose/{iteration}/rendered_img/'
             # Create the directory if it doesn't exist
             os.makedirs(dir_path, exist_ok=True)
             # Save the image
@@ -711,7 +762,7 @@ class Articulator(BaseModel):
         start_time = time.time()
         
         if self.superAnimal_kp_ON:
-            # for index, item in enumerate(model_outputs["rendered_image_with_kp
+            # for index, item in enumerate(model_outputs["rendered_image_with_kp"]
             for index in range(self.num_pose_for_optim):
                 dir_path = f'{path_to_save_img_per_iteration}/superAni_target_image_with_wo_kps_list/{index}_pose'
                 os.makedirs(dir_path, exist_ok=True)
@@ -1265,7 +1316,7 @@ class Articulator(BaseModel):
         ax1.imshow(img1)
         ax2.imshow(img2)
 
-        # Remove axis for a cleaner look
+        # Remove axis
         ax1.axis('off')
         ax2.axis('off')
 
@@ -1280,8 +1331,26 @@ class Articulator(BaseModel):
 
         return combined_fig
 
+
+    # Helper function to safely concatenate only available tensors
+    def safe_cat(self, tensors, dim=0):
+        valid_tensors = [t for t in tensors if t is not None and t.numel() > 0]
+        return torch.cat(valid_tensors, dim) if valid_tensors else None
     
-    def get_superAni_kps_and_image(self, image_path):    
+    
+    def get_valid_tensor(self, tensor, start, end):
+        """
+        Safely slices a tensor. Returns a tensor of zeros if the range is out of bounds or the input is empty.
+        """
+        if tensor is not None and start < tensor.size(0):  # Check start is in range
+            end = min(end, tensor.size(0))  # Adjust end to stay within bounds
+            return tensor[start:end]
+        
+        # Return a tensor of zeros with the expected shape
+        return torch.zeros(end - start)
+
+
+    def get_superAni_kps_and_image(self, image_path, add_slno_coordinate_values = False):    
 
         superanimal_name = "superanimal_quadruped"
         model_name = "hrnetw32"
@@ -1318,26 +1387,64 @@ class Articulator(BaseModel):
                 coords = torch.stack((torch.tensor(x), torch.tensor(y)), dim=1)  # Combine x and y as pairs
                 image_coords.append(coords)
         
-               
-        # print("image_coords[0] shape", image_coords[0].shape)    
-        # Group Bodyparts together
-        # image_coords[0] is a tensor of shape [39, 2]
+        try:   
+            # Group Bodyparts together
+            # image_coords[0] is a tensor of shape [39, 2]
+            print("image_coords[0] length", len(image_coords[0]))
+            # Define bodypart_dict with fallback checks
+            bodypart_dict = {
+                # For each body part, use `get_valid_tensor` to choose the first non-empty tensor
+                "jaw": self.get_valid_tensor(image_coords[0], 0, 5), 
+                "face": self.get_valid_tensor(image_coords[0], 5, 15),    # image_coords[0][5:15]),  # 6th to 15th values
+                "neck": self.get_valid_tensor(image_coords[0], 15, 19),   # image_coords[0][15:19]) 16th to 19th values
+                # "neck": None,
+                "body": self.safe_cat([
+                        self.get_valid_tensor(image_coords[0], 19, 24),     # image_coords[0][19:24])
+                        self.get_valid_tensor(image_coords[0], 36, 39)      # image_coords[0][36:39])
+                ]),  # 20th to 24th and 37th to 39th values
+                "front_left_leg": self.get_valid_tensor(image_coords[0], 24, 27),  # image_coords[0][24:27]) 25th to 27th values
+                "front_right_leg": self.get_valid_tensor(image_coords[0],27, 30),  # image_coords[0][27:30]) 28th to 30th values
+                "back_left_leg": self.safe_cat([
+                    self.get_valid_tensor(image_coords[0], 30, 32),                 # image_coords[0][30:32])
+                    self.get_valid_tensor(image_coords[0], 33, 34)                  # image_coords[0][33:34])
+                ]),  # 31st, 32nd, and 34th values
+                "back_right_leg": self.safe_cat([
+                    self.get_valid_tensor(image_coords[0], 32, 33),                 # (image_coords[0][32:33])
+                    self.get_valid_tensor(image_coords[0], 34, 36)                  # (image_coords[0][34:36])
+                ])  # 33rd, 35th, and 36th values
+            }
+        except IndexError:
+            print(f'Warning: image_coords[0] is empty. Skipping this image: {image_path}')
+            return  # Exit the function:
+
+        #------------
+        # try:
+        #     bodypart_dict["neck"] = self.get_valid_tensor(image_coords[0], 15, 19)
+        # except IndexError:
+        #     print("Error: Invalid index for 'neck' in image_coords")
+        #     # Skip processing the 'neck' key
+        #------------
+            
+
+        img_coord_tensor_all_legs = torch.cat((bodypart_dict["front_left_leg"], bodypart_dict["front_right_leg"], bodypart_dict["back_left_leg"], bodypart_dict["back_right_leg"]))
         
-        bodypart_dict = { 
-            "face": image_coords[0][5:15],                         # remove the jaw kps
-            "neck": image_coords[0][15:19],                       # 16th to 19th values
-            "body": torch.cat((image_coords[0][19:24], image_coords[0][36:39])),  # 20th to 24th and 37th to 39th values
-            "front_left_leg": image_coords[0][24:27],             # 25th to 27th values
-            "front_right_leg": image_coords[0][27:30],            # 28th to 30th values
-            "back_left_leg": torch.cat((image_coords[0][30:32], image_coords[0][33:34])),  # 31st, 32nd, and 34th values
-            "back_right_leg": torch.cat((image_coords[0][32:33], image_coords[0][34:36]))  # 33rd, 35th, and 36th values
-        }
+        # img_coord_tensor_face_n_neck = torch.cat((bodypart_dict["face"], bodypart_dict["neck"]))
         
         if self.super_Ani_head_kps_ON:
             # Shape is [14,2]
+            # img_coordinates_tensor = torch.cat((bodypart_dict["jaw"], bodypart_dict["face"], bodypart_dict["neck"]))
             img_coordinates_tensor = torch.cat((bodypart_dict["face"], bodypart_dict["neck"]))
+        elif self.super_Ani_all_kps_except_face_ON:
+            img_coordinates_tensor = torch.cat((bodypart_dict["neck"], bodypart_dict["body"], img_coord_tensor_all_legs))
+        elif self.super_Ani_body_n_front_legs_ON:
+            img_coordinates_tensor = torch.cat((bodypart_dict["front_left_leg"], bodypart_dict["front_right_leg"], bodypart_dict["body"]))
+        elif self.super_Ani_body_neck_front_legs_ON:
+            img_coordinates_tensor = torch.cat((bodypart_dict["neck"], bodypart_dict["front_left_leg"], bodypart_dict["front_right_leg"], bodypart_dict["body"]))
+        elif self.super_Ani_face_kps_ON:
+            img_coordinates_tensor = bodypart_dict["face"]
+        elif self.super_Ani_neck_kps_ON:
+            img_coordinates_tensor = bodypart_dict["neck"]
         elif self.super_Ani_body_kps_ON:    
-            # Get the body keypoints
             img_coordinates_tensor = bodypart_dict["body"]
         elif self.all_4_legs_kps_ON:
             img_coordinates_tensor = torch.cat((bodypart_dict["front_left_leg"], bodypart_dict["front_right_leg"], bodypart_dict["back_left_leg"], bodypart_dict["back_right_leg"]))
@@ -1366,7 +1473,6 @@ class Articulator(BaseModel):
             # Plot the point
             ax.scatter(x.item(), y.item(), color=cmap(i / len(img_coordinates_tensor)), label=f'Point {i + 1}')
 
-            add_slno_coordinate_values = True
             if add_slno_coordinate_values:
                 # Annotate with serial number next to the point
                 ax.text(x.item() + 12, y.item() + 12, f'{i + 1}', color="blue", fontsize=15, ha='center', va='center')
@@ -1380,7 +1486,6 @@ class Articulator(BaseModel):
                 
                 
     
-        add_slno_coordinate_values = True
         if add_slno_coordinate_values:
             # # Adjust the plot limits to make space for the coordinates on the side
             ax.set_xlim(0, frame.shape[1] + 100)  # Add extra width to accommodate text
@@ -1483,3 +1588,17 @@ class Articulator(BaseModel):
         
         # Return the stacked keypoints tensor and the list of processed images with keypoints
         return target_img_coordinates_tensor_superAni, images_with_kps_batch
+    
+    
+    
+    def draw_gltf_bones(self, articulated_verts, skin_aux, iteration):
+        articulated_verts = torch.squeeze(articulated_verts, dim=0)
+        skin_aux["global_joint_transforms"] = torch.squeeze(skin_aux["global_joint_transforms"], dim=0)
+        fig = self.gltf_skin.plot_skinned_mesh_3d(articulated_verts.cpu().detach().numpy(), skin_aux["global_joint_transforms"].cpu().detach().numpy())
+        
+        dir_path = f'{self.path_to_save_images}/gltf_vis/'
+        # Create the directory if it doesn't exist
+        os.makedirs(dir_path, exist_ok=True)
+        
+        fig.write_image(f'{dir_path}/{iteration}_bone_gltf_vis.png')
+        return fig
