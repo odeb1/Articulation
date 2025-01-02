@@ -41,7 +41,7 @@ def create_bone_mesh(global_joint_transforms):
 
 
 # Changed opacity to 0.0 from 0.50
-def plot_mesh_3d(vertices, indices, xlim=None, ylim=None, zlim=None, color='grey', facecolor=None, plot_vertices=True, fig=None, markersize=2, linewidth=1, opacity=0.0, name=None):
+def plot_mesh_3d(vertices, indices, xlim=None, ylim=None, zlim=None, color='grey', facecolor=None, plot_vertices=True, fig=None, markersize=2, linewidth=1, opacity=0.40, name=None):
     # Ensure vertices is a numpy array for easier manipulation
     vertices = np.asarray(vertices)
     indices = np.asarray(indices)
@@ -58,10 +58,6 @@ def plot_mesh_3d(vertices, indices, xlim=None, ylim=None, zlim=None, color='grey
     
     # Create the 3D mesh plot
     mesh = go.Mesh3d(x=x, y=y, z=z, i=i, j=j, k=k, color=color, opacity=opacity, flatshading=True, name=name)
-    
-    # # ----- Scale the grey mesh to match the blue outline - Newly Added
-    # mesh.update(x=x * 10, y=y * 10, z=z * 10)  # Adjust the scaling factor as needed
-    # # -----
     
     data = [mesh]
     
@@ -116,11 +112,11 @@ def visualize_bones(global_joint_transforms, dims=[0, 1, 2], ax=None, in3d=False
     # plot the bone
     if in3d:
         if plotly:
-            return plot_mesh_3d(bone_vertices, bone_indices, color='blue', plot_vertices=False, opacity=1.0, fig=ax, name=name)
+            return plot_mesh_3d(bone_vertices, bone_indices, color='green', plot_vertices=False, opacity=1.0, fig=ax, name=name)
         else:
-            return plot_mesh_3d_mpl(bone_vertices, bone_indices, color='blue', plot_vertices=True, ax=ax)
+            return plot_mesh_3d_mpl(bone_vertices, bone_indices, color='green', plot_vertices=True, ax=ax)
     else:
-        return plot_mesh_2d(bone_vertices[:, dims], bone_indices, color='blue', facecolor='blue', plot_vertices=True, ax=ax)
+        return plot_mesh_2d(bone_vertices[:, dims], bone_indices, color='green', facecolor='green', plot_vertices=True, ax=ax)
 
 
 def visualize_bones_individualy(global_joint_transforms, dims=[0, 1, 2], ax=None, in3d=False, plotly=True, names=None):
@@ -158,7 +154,7 @@ def add_visibility_control_for_fig_data(fig):
 
 def plot_skinned_mesh_3d(vertices, faces, global_joint_transforms, bone_names=None, visibility_control=False):
     fig = plot_mesh_3d(vertices, faces, plot_vertices=False, name="mesh")
-    fig = visualize_bones_individualy(global_joint_transforms, dims=[2, 1], ax=fig, in3d=True, names=bone_names)
+    # fig = visualize_bones_individualy(global_joint_transforms, dims=[2, 1], ax=fig, in3d=True, names=bone_names)
     if visibility_control:
         add_visibility_control_for_fig_data(fig)
     return fig
