@@ -217,9 +217,19 @@ class Trainer:
         #     file.write(f"The 'get_loss_dict' took {end_time - start_time} seconds to run.\n")
         
     
+        visuals_dict = self.model.get_visuals_dict(model_outputs, batch)
+        
         if visualize:
             
             num_visuals = min(num_visuals, len(batch["image"]))
+            
+            # # Bone drawing
+            # # # for index, visual in enumerate(model_outputs['rendered_images_with_kps_batch_superAni']):
+            # visuals_dict['rendered_images_with_kps_batch_superAni'].save('bones_3D_visual_1.png', bbox_inches='tight', pad_inches=0)
+            # neptune_run[log_prefix + "/rendered_image_with_kps_"].append(visuals_dict['rendered_images_with_kps_batch_superAni'], step=iteration)
+                            
+            # neptune_run[log_prefix + "/target_image_with_kps_"].append(visuals_dict['target_images_with_kps_batch_superAni'], step=iteration)  
+            # visuals_dict['target_images_with_kps_batch_superAni'].save('bones_3D_visual_2.png', bbox_inches='tight', pad_inches=0)  
             
             start_time = time.time()
             
@@ -236,13 +246,25 @@ class Trainer:
                 for index, visual in enumerate(model_outputs['target_image_with_kps_list_after_cyc_check']):
                     neptune_run[log_prefix + "/target_image_with_kps_list_after_cyc_check"+ str(index)].append(visual, step=iteration)
             
-            # neptune_logging = False
-            # if neptune_logging:    
-            #     for index, visual in enumerate(model_outputs['rendered_target_image_with_wo_kps_list']):
-            #         neptune_run[log_prefix + "/rendered_target_image_with_wo_kps_list"+ str(index)].append(visual, step=iteration)
-            # else:
-            #     # FIX ME
-            #     self.log_figure_to_neptune(neptune_run, model_outputs['superAni_render_target_combined_fig'], log_prefix, iteration)
+            
+            superAni = True
+            if superAni:
+                # for index, visual in enumerate(model_outputs['rendered_images_with_kps_batch_superAni']):
+                #     neptune_run[log_prefix + "/rendered_images_with_kps_batch_superAni"+ str(index)].append(visual, step=iteration)
+                
+                # for index, visual in enumerate(model_outputs['target_images_with_kps_batch_superAni']):
+                #     neptune_run[log_prefix + "/target_images_with_kps_batch_superAni"+ str(index)].append(visual, step=iteration)
+                
+                for index, visual in enumerate(model_outputs['superAni_render_target_combined_fig_list']):
+                    neptune_run[log_prefix + "/superAni_render_target_combined_fig_list"+ str(index)].append(visual, step=iteration)
+                 
+            else:
+                for index, visual in enumerate(model_outputs['rendered_target_image_with_wo_kps_list']):
+                    neptune_run[log_prefix + "/rendered_target_image_with_wo_kps_list"+ str(index)].append(visual, step=iteration)
+            
+                # # FIX ME
+                # self.log_figure_to_neptune(neptune_run, model_outputs['superAni_render_target_combined_fig'], log_prefix, iteration)
+            
             
             end_time = time.time()  # Record the end time
             with open('log.txt', 'a') as file:
