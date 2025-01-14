@@ -1,0 +1,170 @@
+_target_: dos.trainer.Trainer # Class Name
+
+train_dataset:
+  _target_: dos.datasets.ImageDataset          # Class Name
+  root_dir: /users/oishideb/oishideb/cow_sd_generated_0  # /0_poses_target_img_NO_KPs.png 
+  attributes:
+    - name: image
+      suffix: _rgb.png
+    - name: mask
+      suffix: _mask.png
+    - name: background
+      suffix: _background.png
+    - name: camera_matrix
+      suffix: _camera.txt
+
+superAni_trainer_ON: False
+
+model:
+  _target_: dos.models.articulator_grad_based.Articulator 
+  bones_predictor:
+    _target_: dos.components.skinning.bones_estimation.BonesEstimator
+    num_body_bones: 8
+    num_leg_bones: 3
+    body_bones_type: z_minmax_y+
+    temperature: 0.05
+
+  gltf_skin:
+    _target_: dos.components.skinning.gltf_skinning.Skin
+    # gltf_file_path: /users/oishideb/oishideb/SheepFemaleRD/SheepFemaleRD.gltf                   # Rest Pose
+    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger/tiger.gltf                   # Non rest pose
+    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_updated_pose/tiger.gltf      # Running gen Pose
+    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walking_blender/tiger.gltf   # Walking gen Pose
+    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_hunting_blender/tiger.gltf   # Hunting gen Pose
+    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_sitting_blender/tiger.gltf   # Crawling gen Pose
+    gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/simpson_mesh_2/simpson.gltf            # Rest gen Pose
+    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.gltf         # Walk Pose better
+
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2937_simpson
+  superAnimal_kp_ON: False           # IMPORTANT: If FALSE, change the option here as well - mode_kps_selection, also change in "superAni_trainer_ON"
+
+  super_Ani_head_kps_ON:             False
+  super_Ani_all_kps_except_face_ON:  False
+  super_Ani_body_n_front_legs_ON:    False
+  super_Ani_body_neck_front_legs_ON: False
+  super_Ani_face_kps_ON:             False
+  super_Ani_neck_kps_ON:             False
+  super_Ani_body_kps_ON:             False
+  all_4_legs_kps_ON:                 False
+  front_left_leg_kps_ON:             False
+  front_right_leg_kps_ON:            False
+  back_left_leg_kps_ON:              False
+  back_right_leg_kps_ON:             False
+
+  num_pose_for_optim: 4              # CHANGE multi_view_optimise_option AND target_image_folder
+  num_pose_for_visual: 12
+  num_sample_bone_line: 4  # 
+  num_sample_farthest_points: 70
+  mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
+  # shape_template_path: /work/oishideb/from_nfs2/uploads-files-2571750-Sheep_Family_v01/Sheep_HighPoly.obj   # 20 bones
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger/tiger.obj                   # Non rest Pose
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_updated_pose/tiger.obj      # Running  Pose
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walking_blender/tiger.obj   # Walking  Pose
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_hunting_blender/tiger.obj   # Hunting  Pose
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_sitting_blender/tiger.obj   # Crawl  Pose
+  shape_template_path: /users/oishideb/oishideb/mesh_assets_all/simpson_mesh_2/simpson.obj          # Rest st Pose
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.obj         # Walk Pose better
+  enable_texture_predictor: False
+
+  view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"
+  random_camera_radius: 2.5 # for single_view: 1; for multi-view: 2.5
+  fit_shape_template_inside_unit_cube: True # for single_view: False; for multi-view: True
+  phi_range_for_optim: [0, 360]
+  phi_range_for_visual: [0, 360]
+
+  # Options are:
+  # get_2_alternating_phi_45_degree_apart
+  # get_4_alternating_phi_45_degree_apart
+  # "rand_phi_each_step_along_azi_for_one_fixed_iter"
+  # "rand_phi_each_step_along_azi_long_short_update_intervals"
+  # "alternate_2_side_views_each_step_along_azimuth"
+  # "alternate_4_side_views_each_step_along_azimuth"
+  # "multiple_random_phi_in_batch"      # if selected this, then specify the no. here - "num_pose_for_optim"
+  # "2_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim" as 2
+  # "4_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim" as 4
+  # "guidance_and_rand_views_in_batch"  # if selected this, then specify the no. here - "num_pose_for_optim" as 2
+  # 8_side_views_only_in_batch
+  # 7_side_views_only_in_batch
+  # 12_side_views_only_in_batch
+  # 12_side_views_only_in_batch_tiger_sit
+  # 4_side_views_only_in_batch_90_360_270_180
+  multi_view_optimise_option: "4_side_views_only_in_batch"            # CHANGE num_pose_for_optim AND target_image_folder
+  
+  target_image_folder: /users/oishideb/oishideb/all_mvdream_target_img_folders/simpson_Matt
+  pose_update_interval: 1
+
+  bones_rotations: "bones_rotations" # Options are "bones_rotations"; "DUMMY_bones_rotations"; "NO_esbon_rotations"
+  using_pil_object: False
+  cyc_consi_check_switch: False    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
+  cyc_consi_check_dist_threshold: 10      # 15
+  cyc_check_img_save: False # This saves all the images with Cycle Consistency Check
+  # seed: 60
+  target_image_fixed: True
+  save_individual_img: False    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
+  
+  correspond:
+    _target_: dos.components.fuse.compute_correspond.ComputeCorrespond
+    only_dino: True # If TRUE, this will switch off the loading of ODISE model that extracts sd features for the FUSE Model.
+    batch_compute: False    # Switch to turn on and off the Batch Computation for the correspondences
+    cyc_consi_check_switch: False  # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
+
+  articulation_predictor:
+    _target_: dos.predictors.articulation_predictor.ArticulationPredictor  # Class Name
+    size_dataset: 49
+    num_bones: 49
+    degree: 70
+    
+  renderer:   # variable Name
+    _target_: dos.modules.renderer.Renderer # Class Name
+    cam_pos_z_offset: 0.0
+    fov: 28.84 # blender 70 mm focal length, 36 mm sensor width
+
+  diffusion_Text_to_Target_Img:  # variable Name
+    _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
+    cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2937_simpson/sd_sds_output/
+    init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
+    vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
+    # prompts: 'A photograph of a single cow running very fast, back view.' #.The photo should have a grey background.' # DOS-1338  opti multi_view_azimu, GS20, Num_Infe50
+    prompts_source: '' #.The photo should have a grey background.' # DOS-1339  opti multi_view_azimu, GS20, Num_Infe50
+    # negative_prompts: 'front view, side view, tail, black' #  , cartoon, dead, shadow, reflection'     # the string shouldn't be in a square brackets ['']
+    # prompts: 'A photograph of a fully white cow running very fast, back view. All four legs should be visible. No cow tail'
+    prompts: 'A photograph of Matt Groening cartoon character raising his hands up in the air'
+    view_dependent_prompting: True
+    mode: sds_latent # Options are sds_image OR sds_latent-l2_image # sds_latent
+    lr: 0.1  # For DeepFloyd+SDS
+    lr_l2: 0.1  # For SD+SDS  1e4
+    # seed: 8 # 6
+    num_inference_steps: 1
+    guidance_scale: 40
+    dds: False
+    select_diffusion_option: 'sd' # Options are sd, sd_XL, df, sd_dds_loss  # by default is sds loss
+    image_fr_path: False
+    save_visuals_every_n_iter: 4
+    schedule: "[600] * 50"
+
+renderer:   # variable Name
+  _target_: dos.modules.renderer.Renderer # Class Name
+  cam_pos_z_offset: 0.0
+  fov: 28.84
+
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2937_simpson
+checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
+experiment_name: articulator-dev-0.1
+save_each_iteration: True
+evaluate_the_model: False
+save_individual_img: False    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
+
+device: cuda:0
+
+# resume: True
+
+# learning_rate: 1e-9  # tried with 0.01, 0.5, 0.9, 1;   # 1e-4   # DOS_1432
+learning_rate: 0.0009          
+# for debugging
+num_iterations: 1000
+num_vis_iterations: 1
+num_eval_iterations: 10
+save_checkpoint_freq: 50
+num_workers: 0
+batch_size: 1
