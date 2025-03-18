@@ -69,9 +69,13 @@ class Renderer(object):
             # # Black Background
             # background = torch.zeros((batch_size, h, w, 3), device=mvp.device)
             
-            # Grey Background
-            grey_value = 0.5  # Mid-grey value in [0, 1] range
-            background = torch.full((batch_size, h, w, 3), grey_value, device=mvp.device)
+            # # Grey Background
+            # grey_value = 0.5  # Mid-grey value in [0, 1] range
+            # background = torch.full((batch_size, h, w, 3), grey_value, device=mvp.device)
+            
+            # White Background
+            white_value = 1.0
+            background = torch.full((batch_size, h, w, 3), white_value, device=mvp.device)
 
         else:
             # expects channels last
