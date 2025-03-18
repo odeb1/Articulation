@@ -8,25 +8,40 @@ import torch.nn as nn
 
 class ArticulationPredictor(nn.Module):
     
-    def __init__(self, size_dataset, num_bones, degree=60):
+    def __init__(self, size_dataset, num_bones, bone_initial_range=0, degree=60):
         super(ArticulationPredictor, self).__init__()
         
         # self.degree = degree
         # degree = 10 #(0.17 rad)
         # rad = self.degree * (math.pi/180)
         
-        # Bone rotations are represented as quaternions, which have 4 components.
-        # Using nn.Embedding to act as a lookup table
+        
+        # # Bone rotations are represented as quaternions, which have 4 components.
+        # # Using nn.Embedding to act as a lookup table
         self.bones_rotations = nn.Embedding(size_dataset, num_bones * 4) # Shape is torch.Size([n, 3*47]) 
+        
         # Resizing the bones_rotations to the shape (size_dataset, num_bones, 4)
         self.bones_rotations.weight.data = self.bones_rotations.weight.data.view(size_dataset, num_bones, 4)
+        
+        # Initialize --------------------------------
         # Initialize with small values to prevent NaNs in quaternion calculations
         self.bones_rotations.weight.data *= 1e-6 
+        
+        # Randomly initialize the weights with a small range
+        nn.init.uniform_(self.bones_rotations.weight, -bone_initial_range, bone_initial_range)         # zero initialisation
+        # nn.init.uniform_(self.bones_rotations.weight, -0.02, 0.02)    # for Smaller range
+        # nn.init.uniform_(self.bones_rotations.weight, -0.03, 0.03)    # for Smaller range
+        # nn.init.uniform_(self.bones_rotations.weight, -0.1, 0.1)      # Larger range
+         # nn.init.uniform_(self.bones_rotations.weight, -0.1, 0.1)     # Larger range
+        # Initialize --------------------------------
+        
+        
         # Set the first component of each quaternion to 1 for the identity quaternion
         self.bones_rotations.weight.data[:, :, 0] = 1.0
         # Resize back
         self.bones_rotations.weight.data = self.bones_rotations.weight.data.view(size_dataset, num_bones * 4)
-
+        
+        
         self.num_bones = num_bones
         
         # Initializing the name to index dictionary
