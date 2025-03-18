@@ -55,6 +55,7 @@ class Trainer:
     train_dataset: Dataset
     model: nn.Module
     save_each_iteration: bool
+    superAni_trainer_ON: bool
     path_to_save_img_per_iteration : str = None
     val_dataset: Optional[Dataset] = None
     batch_size: int = 32
@@ -85,6 +86,7 @@ class Trainer:
     renderer: Renderer = None # Added
     evaluate_the_model: bool = True # Added
     save_individual_img: bool = False
+    
 
     def __post_init__(self):
         self.val_dataset = self.val_dataset or self.train_dataset
@@ -247,8 +249,8 @@ class Trainer:
                     neptune_run[log_prefix + "/target_image_with_kps_list_after_cyc_check"+ str(index)].append(visual, step=iteration)
             
             
-            superAni = True
-            if superAni:
+            
+            if self.superAni_trainer_ON:
                 # for index, visual in enumerate(model_outputs['rendered_images_with_kps_batch_superAni']):
                 #     neptune_run[log_prefix + "/rendered_images_with_kps_batch_superAni"+ str(index)].append(visual, step=iteration)
                 
