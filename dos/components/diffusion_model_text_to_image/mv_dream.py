@@ -13,8 +13,11 @@ from jaxtyping import Bool, Complex, Float, Inexact, Int, Integer, Num, Shaped, 
 from torch import Tensor
 from dos.utils.utils import C
 
-from mvdream.camera_utils import convert_opengl_to_blender, normalize_camera
-from mvdream.model_zoo import build_model
+# Comment out the MVDream option
+# from mvdream.camera_utils import convert_opengl_to_blender, normalize_camera
+# from mvdream.model_zoo import build_model
+
+
 # from dos.components.diffusion_model_text_to_image.base import PromptProcessor
 
 # newly added for mv_dream

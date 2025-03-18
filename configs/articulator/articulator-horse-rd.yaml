@@ -22,13 +22,14 @@ model:
     body_bones_type: z_minmax_y+
     temperature: 0.05
 
-  path_to_save_images: /scratch/shared/nfs2/oishideb/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2071
-  num_pose_for_optim: 1
+  path_to_save_images: /scratch/shared/nfs2/oishideb/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3173_horse_optical_flow
+  num_pose_for_optim: 2
   num_pose_for_visual: 30
   num_sample_bone_line: 4  #
   num_sample_farthest_points: 250
   mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
-  shape_template_path: /scratch/shared/nfs2/oishideb/animal_assets/uploads-files-2390590-Horse_Family_v01/Horse_HighPoly.obj
+  # shape_template_path: /scratch/shared/nfs2/oishideb/animal_assets/uploads-files-2390590-Horse_Family_v01/Horse_HighPoly.obj
+  shape_template_path: /users/oishideb/oishideb/HorseFemaleRD/HorseFemaleRD.obj    
   enable_texture_predictor: False
   
   view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"
@@ -43,7 +44,7 @@ model:
   # "alternate_4_side_views_each_step_along_azimuth"
   # "multiple_random_phi_in_batch"    # if selected this, then specify the no. here - "num_pose_for_optim"
   # "2_side_views_only_in_batch"      # if selected this, then specify the no. here - "num_pose_for_optim"
-  multi_view_optimise_option: "random_phi_each_step_along_azimuth"
+  multi_view_optimise_option: "2_side_views_only_in_batch"
 
   bones_rotations: "bones_rotations" # Options are "bones_rotations"; "DUMMY_bones_rotations"; "NO_bones_rotations"
   using_pil_object: False
@@ -74,7 +75,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/cache/huggingface_hub
-    output_dir: /scratch/shared/nfs2/oishideb/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2071/sd_sds_output/
+    output_dir: /scratch/shared/nfs2/oishideb/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3173_horse_optical_flow/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     # prompts: 'A photograph of a single cow running very fast, back view.' #.The photo should have a grey background.' # DOS-1338  opti multi_view_azimu, GS20, Num_Infe50
@@ -101,7 +102,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /scratch/shared/nfs2/oishideb/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2071
+path_to_save_img_per_iteration: /scratch/shared/nfs2/oishideb/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3173_horse_optical_flow
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
 save_each_iteration: True

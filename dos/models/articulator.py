@@ -41,7 +41,7 @@ from ..modules.raft.core.raft import RAFT
 from ..modules.raft.core.utils import flow_viz
 
 flow_model = torch.nn.DataParallel(RAFT()).to("cuda")
-flow_model.load_state_dict(torch.load('/scratch/local/ssd/anjun/consistency/RAFT/models/raft-things.pth'))
+flow_model.load_state_dict(torch.load('/work/oishideb/raft-things.pth'))
 
 def viz(img1, img2, flo, filename):
     img1 = img1[0].permute(1,2,0).detach().cpu().numpy() * 255
@@ -120,6 +120,7 @@ class Articulator(BaseModel):
         target_image_fixed = False,
         save_individual_img = False,
         multi_view_optimise_option = 'random_phi_each_step_along_azimuth',
+        pose_update_interval = 20,
     ):
         super().__init__()
         self.path_to_save_images = path_to_save_images
@@ -160,6 +161,7 @@ class Articulator(BaseModel):
         self.target_image_fixed = target_image_fixed
         self.save_individual_img = save_individual_img
         self.multi_view_optimise_option = multi_view_optimise_option
+        self.pose_update_interval = pose_update_interval
         
 
     def _load_shape_template(self, shape_template_path, fit_inside_unit_cube=False):
@@ -389,7 +391,7 @@ class Articulator(BaseModel):
                 
             elif self.view_option == "multi_view_azimu":
                
-                pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_optim, self.device, batch_number=num_batches, iteration=iteration, radius=self.random_camera_radius, phi_range=self.phi_range_for_optim, multi_view_option = self.multi_view_optimise_option)
+                pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_optim, self.device, batch_number=num_batches, iteration=iteration, radius=self.random_camera_radius, phi_range=self.phi_range_for_optim, multi_view_option = self.multi_view_optimise_option, update_interval=self.pose_update_interval)
         else:
             pose=batch["pose"]
         
