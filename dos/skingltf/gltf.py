@@ -138,6 +138,44 @@ def read_data(gltf, accessor_id):
         pygltflib.DATA_URI_HEADER = "giraffe"
     elif "tiger" in buffer.uri:
         pygltflib.DATA_URI_HEADER = "tiger"
+    elif "simpson" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "simpson"
+    elif "cat_bengal" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "cat_bengal"
+    elif "cat" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "cat"
+    elif "elephant" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "elephant"
+    elif "eagle" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "eagle"
+    elif "seagull" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "seagull"
+    elif "humming_bird" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "humming_bird"
+    elif "fish" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "fish"
+    elif "frog" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "frog"
+    elif "dog" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "dog"
+    elif "lion" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "lion"
+    elif "polar_bear" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "polar_bear"
+    elif "cartoon_monkey" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "cartoon_monkey"
+    elif "butterfly" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "butterfly"
+    elif "rabbit" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "rabbit"
+    elif "alpaca" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "alpaca"
+    elif "penguin" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "penguin"
+    elif "yellow_bird" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "yellow_bird"
+    elif "bird" in buffer.uri:
+        pygltflib.DATA_URI_HEADER = "bird"
     else:
         print(f"Debug: Unknown data URI header found in buffer.uri: {buffer.uri}")
         raise ValueError("Unknown data uri header")
