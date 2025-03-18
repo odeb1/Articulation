@@ -29,6 +29,7 @@ model:
     _target_: dos.predictors.articulation_predictor.ArticulationPredictor
     size_dataset: 49
     num_bones: 20
+    bone_initial_range: 0.0   # zero initialisation for bones
 
 
   renderer:
