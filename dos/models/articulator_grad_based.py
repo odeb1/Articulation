@@ -37,6 +37,32 @@ from .base import BaseModel
 from dos.nvdiffrec.render.mesh import make_mesh
 # from ..models.nelder_mead_optim import NelderMeadOptim
 
+from lang_sam import LangSAM
+from torchvision.transforms.functional import to_pil_image, to_tensor
+from ..modules.raft.core.raft import RAFT
+from ..modules.raft.core.utils import flow_viz
+
+flow_model = torch.nn.DataParallel(RAFT()).to("cuda")
+flow_model.load_state_dict(torch.load('/work/oishideb/raft-things.pth'))
+
+def viz(img1, img2, flo, filename):
+    img1 = img1[0].permute(1,2,0).detach().cpu().numpy() * 255
+    img2 = img2[0].permute(1,2,0).detach().cpu().numpy() * 255
+    flo = flo.permute(1,2,0).detach().cpu().numpy()
+    
+    # map flow to rgb image
+    flo = flow_viz.flow_to_image(flo)
+    img_flo = np.concatenate([img1, img2, flo], axis=0) # [0, 255]
+
+    cv2.imwrite(filename, img_flo[:, :, [2,1,0]])
+    return img_flo[:, :, [2,1,0]]
+
+
+target_img_rgb = None
+flows = None
+langsam_model = LangSAM()
+
+
 class Articulator(BaseModel):
     """
     Articulator predicts instance shape parameters (instance shape) - optimisation based - predictor takes only id as input
