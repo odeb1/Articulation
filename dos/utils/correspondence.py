@@ -51,7 +51,8 @@ def draw_correspondences_1_image(points1: List[Tuple[float, float]], image1: Ima
                             "maroon", "white", "black", "chocolate", "gray", "blueviolet"])
     colors = np.array([cmap(x) for x in range(num_points)])
     colors = cmap(np.linspace(0, 1, num_points))
-    radius1, radius2 = 0.03*max(image1.size), 0.01*max(image1.size)
+    # radius1, radius2 = 0.03*max(image1.size), 0.01*max(image1.size)
+    radius1, radius2 = 0.01*max(image1.size), 0.01*max(image1.size)
     
     # plot a subfigure put image1 in the top, image2 in the bottom
     fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
@@ -64,8 +65,8 @@ def draw_correspondences_1_image(points1: List[Tuple[float, float]], image1: Ima
         #ax1.add_patch(circ1_1)
         ax1.add_patch(circ1_2)
         
-        # Adding an integer number next to the point
-        ax1.text(x1 + radius2, y1, str(idx), color='blue', fontsize=10, verticalalignment='center', horizontalalignment='left')
+        # # Adding an integer number next to the point
+        # ax1.text(x1 + radius2, y1, str(idx), color='blue', fontsize=10, verticalalignment='center', horizontalalignment='left')
     
     # ax1.text(0.7, 0.95, f' Frame_{index}', verticalalignment='top', horizontalalignment='center', color = 'black', fontsize ='13', fontweight = 'bold', transform=ax1.transAxes)
     ax1.imshow(image1)
@@ -110,8 +111,8 @@ def draw_correspondences_combined(points1: List[Tuple[float, float]], points2: L
             circ = plt.Circle((x, y), radius, color=color)
             ax.add_patch(circ)
             
-            # # Adding an integer number next to the point
-            ax.text(x + radius, y, str(idx), color='blue', fontsize=15, verticalalignment='center', horizontalalignment='left')
+            # # # Adding an integer number next to the point
+            # ax.text(x + radius, y, str(idx), color='blue', fontsize=15, verticalalignment='center', horizontalalignment='left')
 
             # Adding the coordinate values and integer number next to the point
             # ax.text(x + radius, y, f"{idx} ({x:.1f}, {y:.1f})", color='blue', fontsize=15, verticalalignment='center', horizontalalignment='left') 
