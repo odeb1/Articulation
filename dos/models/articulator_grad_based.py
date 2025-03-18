@@ -14,6 +14,8 @@ import torch
 import torch.nn.functional as nn_functional
 import torchvision.transforms.functional as F
 import torchvision
+import torchvision.transforms as transforms
+from torchvision.transforms import Resize, ToTensor
 from PIL import Image, ImageDraw
 import io
 from dos.utils.correspondence import (draw_correspondences_1_image,
@@ -47,6 +49,7 @@ class Articulator(BaseModel):
         path_to_save_images,
         num_pose_for_optim,
         num_pose_for_visual,
+        num_pose_for_visual_3D,
         num_sample_bone_line,
         target_image_folder,
         super_Ani_head_kps_ON,
@@ -98,6 +101,7 @@ class Articulator(BaseModel):
         self.path_to_save_images = path_to_save_images
         self.num_pose_for_optim = num_pose_for_optim
         self.num_pose_for_visual = num_pose_for_visual
+        self.num_pose_for_visual_3D = num_pose_for_visual_3D
         self.num_sample_bone_line = num_sample_bone_line
         self.num_sample_farthest_points = num_sample_farthest_points
         self.mode_kps_selection = mode_kps_selection
@@ -175,10 +179,10 @@ class Articulator(BaseModel):
         else:
             global ComputeCorrespond, DiffusionForTargetImg
             print("superAnimal_kp_ON option is off")
-            # # Uncomment it if using correspondences
+            # # IMPORTANT: Uncomment it if using correspondences
             
-            # from dos.components.fuse.compute_correspond import ComputeCorrespond
-            # from ..components.diffusion_model_text_to_image.diffusion_sds import DiffusionForTargetImg       
+            from dos.components.fuse.compute_correspond import ComputeCorrespond
+            from ..components.diffusion_model_text_to_image.diffusion_sds import DiffusionForTargetImg       
 
         
     def _load_shape_template(self, shape_template_path, fit_inside_unit_cube=False):
@@ -570,8 +574,27 @@ class Articulator(BaseModel):
         else:
             
             # GENERATING TARGET IMAGES USING DIFFUSION (SD or DF or MV-Dream)
-            if self.use_gt_target_img:
-                target_img_rgb = batch["image"]
+            # if self.use_gt_target_img:
+            #     target_img_rgb.shape is [1, 3, 256, 256]
+            #     target_img_rgb = batch["image"]
+            #     print('target_img_rgb shape', target_img_rgb.shape)
+            
+            if self.target_image_fixed:
+                target_img_rgb = self.images_path_to_tensor_840_by_840(self.target_image_folder)
+                
+                # image_list = []
+                # for filename in os.listdir(self.target_image_folder):
+                #     if filename.endswith(('.jpg', '.jpeg', '.png')): 
+                #         image_path = os.path.join(self.target_image_folder, filename)
+                #         image = Image.open(image_path).convert('RGB') 
+                #         image = Resize(840)(image)
+                #         tensor_image = ToTensor()(image)
+                #         image_list.append(tensor_image)
+
+                # # Stack images into a single tensor
+                # target_img_rgb = torch.stack(image_list, dim=0) 
+                # print('target_img_rgb shape', target_img_rgb.shape)
+                
             else:
                 # if self._current_iteration % self.sds_every_n_iter == 0 or self._target_img_rgb is None:
                 target_img_rgb = self.diffusion_Text_to_Target_Img.run_experiment(
@@ -580,6 +603,11 @@ class Articulator(BaseModel):
                     direction = direction,
                     c2w = w2c.permute(0, 2, 1),     # Transpose the 3D matrix
                 )
+                # target_img_rgb shape torch.Size([4, 3, 512, 512])
+                print('target_img_rgb shape', target_img_rgb.shape)
+                
+                #  input_image=renderer_outputs["image_pred"] TO DO - remove .detach() for only SDS baseline. 
+                
                 #     self._target_img_rgb = target_img_rgb
                 # target_img_rgb = self._target_img_rgb
 
@@ -618,7 +646,8 @@ class Articulator(BaseModel):
                 #bones_predictor_outputs["bones_pred"],    # this is a rest pose    # bones_predictor_outputs["bones_pred"].shape is torch.Size([4, 20, 2, 3]), 4 is batch size, 20 is number of bones, 2 are the two endpoints of the bones and 3 means the 3D point defining one of the end points of the line segment in 3D that defines the bone 
                 renderer_outputs["mask_pred"],
                 renderer_outputs["image_pred"],            # renderer_outputs["image_pred"].shape is torch.Size([4, 3, 256, 256]), 4 is batch size, 3 is RGB channels, 256 is image resolution
-                target_image = batch["image"] if self.target_image_fixed else target_img_rgb,                  # batch["image"] is fixed Target images (generated from SD), target_img_rgb randomly generated per iteration
+                # target_image = batch["image"] if self.target_image_fixed else target_img_rgb,                  # batch["image"] is fixed Target images (generated from SD), target_img_rgb randomly generated per iteration
+                target_image = target_img_rgb, 
             )
             end_time = time.time()  # Record the end time
             # with open('log.txt', 'a') as file:
@@ -633,8 +662,9 @@ class Articulator(BaseModel):
         
         outputs.update(renderer_outputs)        # renderer_outputs keys are dict_keys(['image_pred', 'mask_pred', 'albedo', 'shading'])
         ## Saving poses along the azimuth
-        self.save_pose_along_azimuth(articulated_mesh, material, self.path_to_save_images, iteration)      
-    
+        self.save_pose_along_azimuth(self.num_pose_for_visual, articulated_mesh, material, self.path_to_save_images, iteration)      
+        self.save_pose_along_azimuth(self.num_pose_for_visual_3D, articulated_mesh, material, self.path_to_save_images, iteration)    
+        
         return outputs
 
     def get_metrics_dict(self, model_outputs, batch):
@@ -731,13 +761,13 @@ class Articulator(BaseModel):
             
 
     ## Saving poses along the azimuth for Visualisation
-    def save_pose_along_azimuth(self, articulated_mesh, material, path_to_save_images, iteration):
+    def save_pose_along_azimuth(self, num_pose_for_visual, articulated_mesh, material, path_to_save_images, iteration):
         
         if self.view_option == "single_view":
             # Added for debugging purpose
-            pose, direction = multi_view.poses_along_azimuth_single_view(self.num_pose_for_visual, device=self.device)
+            pose, direction = multi_view.poses_along_azimuth_single_view(num_pose_for_visual, device=self.device)
         else:
-            pose, direction = multi_view.poses_along_azimuth(self.num_pose_for_visual, device=self.device, radius=self.random_camera_radius, phi_range=self.phi_range_for_visual, multi_view_option ='multiple_random_phi_in_batch', update_interval=self.pose_update_interval)
+            pose, direction = multi_view.poses_along_azimuth(num_pose_for_visual, device=self.device, radius=self.random_camera_radius, phi_range=self.phi_range_for_visual, multi_view_option ='multiple_random_phi_in_batch', update_interval=self.pose_update_interval)
         
         renderer_outputs = self.renderer(
             articulated_mesh,
@@ -749,7 +779,7 @@ class Articulator(BaseModel):
         for i in range(pose.shape[0]):
             rendered_image_PIL = F.to_pil_image(renderer_outputs["image_pred"][i])
             rendered_image_PIL = resize(rendered_image_PIL, target_res = 840, resize=True, to_pil=True)
-            dir_path = f'{path_to_save_images}/azimuth_pose/{iteration}/rendered_img/'
+            dir_path = f'{path_to_save_images}/azimuth_pose_{num_pose_for_visual}/{iteration}/rendered_img/'
             # Create the directory if it doesn't exist
             os.makedirs(dir_path, exist_ok=True)
             # Save the image
@@ -1594,11 +1624,68 @@ class Articulator(BaseModel):
     def draw_gltf_bones(self, articulated_verts, skin_aux, iteration):
         articulated_verts = torch.squeeze(articulated_verts, dim=0)
         skin_aux["global_joint_transforms"] = torch.squeeze(skin_aux["global_joint_transforms"], dim=0)
-        fig = self.gltf_skin.plot_skinned_mesh_3d(articulated_verts.cpu().detach().numpy(), skin_aux["global_joint_transforms"].cpu().detach().numpy())
+        fig_with_vertices, fig_without_vertices = self.gltf_skin.plot_skinned_mesh_3d(articulated_verts.cpu().detach().numpy(), skin_aux["global_joint_transforms"].cpu().detach().numpy())
         
-        dir_path = f'{self.path_to_save_images}/gltf_vis/'
+        dir_path_with_vertices = f'{self.path_to_save_images}/gltf_vis_with_vertices/'
+        dir_path_without_vertices = f'{self.path_to_save_images}/gltf_vis_without_vertices/'
+        
         # Create the directory if it doesn't exist
-        os.makedirs(dir_path, exist_ok=True)
+        os.makedirs(dir_path_with_vertices, exist_ok=True)
+        os.makedirs(dir_path_without_vertices, exist_ok=True)
         
-        fig.write_image(f'{dir_path}/{iteration}_bone_gltf_vis.png')
-        return fig
+        fig_with_vertices.write_image(f'{dir_path_with_vertices}/{iteration}_gltf_vis_with_vertices.png')
+        fig_without_vertices.write_image(f'{dir_path_without_vertices}/{iteration}_gltf_vis_without_vertices.png')
+        
+        # Save the figure as an interactive HTML file
+        fig_with_vertices.write_html(f'{dir_path_with_vertices}/{iteration}_mesh.html')
+        fig_without_vertices.write_html(f'{dir_path_without_vertices}/{iteration}_mesh.html')
+        
+        return fig_with_vertices, fig_without_vertices
+    
+    
+    # def images_path_to_tensor_840_by_840(self, folder_path):
+    #     image_list = []
+    #     for filename in os.listdir(self.target_image_folder):
+    #         if filename.endswith(('.jpg', '.jpeg', '.png')): 
+    #             image_path = os.path.join(self.target_image_folder, filename)
+    #             image = Image.open(image_path).convert('RGB') 
+    #             image = Resize(840)(image)
+    #             tensor_image = ToTensor()(image)
+    #             image_list.append(tensor_image)
+    #     # Stack images into a single tensor
+    #     img_tensor = torch.stack(image_list, dim=0) 
+
+    #     return img_tensor
+    
+    def images_path_to_tensor_840_by_840(self, folder_path):
+        """Reads images from a folder in numerical order, resizes them to 840x840, and stacks them into a tensor.
+
+        Args:
+            folder_path: Path to the folder containing the images.
+
+        Returns:
+            A PyTorch tensor with shape (num_images, 3, 840, 840).
+        """
+
+        image_list = []
+        filenames = os.listdir(folder_path)
+
+        # Sort filenames numerically
+        def sort_key(filename):
+          import re
+          return [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', filename)]
+        filenames.sort(key=sort_key)
+
+        for filename in filenames:
+          if filename.endswith(('.jpg', '.jpeg', '.png')):
+            image_path = os.path.join(folder_path, filename)
+            image = Image.open(image_path).convert('RGB')
+            # image = Resize(840)(image)
+            image = resize(image, 840, resize=True, to_pil=True)
+            tensor_image = ToTensor()(image)
+            image_list.append(tensor_image)
+
+        # Stack images into a single tensor
+        img_tensor = torch.stack(image_list, dim=0)
+
+        return img_tensor
