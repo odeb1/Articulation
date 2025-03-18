@@ -32,7 +32,7 @@ class ArticulationPredictor(nn.Module):
         # nn.init.uniform_(self.bones_rotations.weight, -0.02, 0.02)    # for Smaller range
         # nn.init.uniform_(self.bones_rotations.weight, -0.03, 0.03)    # for Smaller range
         # nn.init.uniform_(self.bones_rotations.weight, -0.1, 0.1)      # Larger range
-         # nn.init.uniform_(self.bones_rotations.weight, -0.1, 0.1)     # Larger range
+        # nn.init.uniform_(self.bones_rotations.weight, -0.1, 0.1)     # Larger range
         # Initialize --------------------------------
         
         
