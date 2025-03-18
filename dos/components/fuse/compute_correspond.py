@@ -142,11 +142,15 @@ class ComputeCorrespond:
             img1_patch_idx = num_patches * img1_y_patch + img1_x_patch
             
             # Load image 1
+            print("img1_tensor shape", img1_tensor.shape)
             img1 = torchvision.transforms.functional.to_pil_image(img1_tensor[index])   
             img1_input = resize(img1, real_size, resize=True, to_pil=True, edge=self.EDGE_PAD) # this is for sd - img size used is 960*960
             img1 = resize(img1, img_size, resize=True, to_pil=True, edge=self.EDGE_PAD)        # this is for DINO - img size used is 840*840
             
             # Load image 2
+            # import ipdb; ipdb.set_trace()
+            print("img2_tensor shape", img2_tensor.shape)
+            print('index', index)
             img2 = torchvision.transforms.functional.to_pil_image(img2_tensor[index])
             img2_input = resize(img2, real_size, resize=True, to_pil=True, edge=self.EDGE_PAD)
             img2 = resize(img2, img_size, resize=True, to_pil=True, edge=self.EDGE_PAD)
