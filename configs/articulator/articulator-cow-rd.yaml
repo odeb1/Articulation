@@ -19,20 +19,25 @@ train_dataset:
     - name: camera_matrix
       suffix: _camera.txt
 
+superAni_trainer_ON: True
+
 model:
   _target_: dos.models.articulator_grad_based.Articulator  # Other option is articulator_grad_based; articulator_nelder_mead
   bones_predictor:
     _target_: dos.components.skinning.bones_estimation.BonesEstimator
-    num_body_bones: 8
+    num_body_bones: 10
     num_leg_bones: 3
     body_bones_type: z_minmax_y+
     temperature: 0.05
 
   gltf_skin:
     _target_: dos.components.skinning.gltf_skinning.Skin
-    gltf_file_path: /scratch/shared/beegfs/tomj/projects/articulator/data/synth_animals/shape_templates/cow_female-rd/Cow-OBJ-v01/Cow_Highpoly.gltf
+    gltf_file_path: /scratch/shared/beegfs/tomj/projects/articulator/data/synth_animals/shape_templates/cow_female-rd/Cow-OBJ-v01/Cow_Highpoly.gltf       # Rest Pose
+    # gltf_file_path: /users/oishideb/oishideb/CowMaleRD/CowMaleRD.gltf  # running pose
+    # gltf_file_path:  /users/oishideb/oishideb/mesh_assets_all/CowMaleRD/CowMaleRD.gltf #  bad file
+    
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2506_Cow_mv_dream_lr_0_0009_4_views_interval_1
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2865_cow_gltf_vis
   # target_image_path: /users/oishideb/oishideb/cow_sd_generated_0/000009_rgb.png  # mv_dream 45 deg side view
   # target_image_path: /users/oishideb/oishideb/cow_sd_generated_3/000001_rgb.png  # Head Bend Cow
   # target_image_path: /users/oishideb/oishideb/cow_sd_generated_0/000009_rgb.png  # SD gen 135 deg side view standing back 2 legs only
@@ -40,16 +45,33 @@ model:
   # target_image_path: /users/oishideb/oishideb/cow_sd_generated_4/000009_rgb.png  # SD gen previous - 45 deg side view
   # target_image_path: /users/oishideb/oishideb/cow_sd_generated_0/000009_rgb.png  # 45 deg side view
   # target_image_path: /users/oishideb/oishideb/cow_sd_generated_1/000001_rgb.png  # 135 deg side view Back view
-  superAnimal_kp_ON: True
-  super_Ani_head_kps_ON: False
-  super_Ani_body_kps_ON: False
-  all_4_legs_kps_ON: True
-  num_pose_for_optim: 1
+  superAnimal_kp_ON: True           # IMPORTANT: If TRUE, SELECT "kps_based_on_superAnimal" in "mode_kps_selection".
+  
+  super_Ani_head_kps_ON:            False
+  super_Ani_all_kps_except_face_ON: True
+  super_Ani_body_n_front_legs_ON:   False
+  super_Ani_body_neck_front_legs_ON: False
+  super_Ani_face_kps_ON:            False
+  super_Ani_neck_kps_ON:            False
+  super_Ani_body_kps_ON:            False
+  all_4_legs_kps_ON:                False
+  front_left_leg_kps_ON:            False
+  front_right_leg_kps_ON:           False
+  back_left_leg_kps_ON:             False
+  back_right_leg_kps_ON:            False
+
+  num_pose_for_optim: 4
   num_pose_for_visual: 8
+  num_pose_for_visual_3D: 300        # for 3D
   num_sample_bone_line: 5  #
   num_sample_farthest_points: 250 # No. of Keypoints to select randomly 
   mode_kps_selection: "kps_based_on_superAnimal" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
   shape_template_path: /scratch/shared/beegfs/tomj/projects/articulator/data/synth_animals/shape_templates/cow_female-rd/Cow-OBJ-v01/Cow_Highpoly.obj
+  # shape_template_path: /scratch/shared/beegfs/tomj/projects/articulator/data/synth_animals/shape_templates/cow_female-rd/Cow-OBJ-v01/Cow_Highpoly.obj
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/CowMaleRD/CowMaleRD.obj  # bad file
+  # shape_template_path: /users/oishideb/oishideb/CowMaleRD/CowMaleRD.obj  # running pose - bad file
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/cow_run_pose_good/Cow_Highpoly-run.obj # running pose
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/cow_drink_pose/Cow_Highpoly-drink.obj # drinking pose
   enable_texture_predictor: False
 
   view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"
@@ -59,16 +81,17 @@ model:
   phi_range_for_visual: [0, 360] # 
   
   # Options are
-  # get_2_alternating_phi_45_degree_apart
-  # get_4_alternating_phi_45_degree_apart
+  # "get_2_alternating_phi_45_degree_apart"
+  # "get_4_alternating_phi_45_degree_apart"
   # "rand_phi_each_step_along_azi_for_one_fixed_iter"
   # "rand_phi_each_step_along_azi_long_short_update_intervals"
   # "alternate_2_side_views_each_step_along_azimuth"
   # "alternate_4_side_views_each_step_along_azimuth"
   # "multiple_random_phi_in_batch"      # if selected this, then specify the no. here - "num_pose_for_optim"
-  # "2_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim"
+  # "2_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim" as 2
+  # "4_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim" as 4
   # "guidance_and_rand_views_in_batch"  # if selected this, then specify the no. here - "num_pose_for_optim" as 2
-  multi_view_optimise_option: "get_4_alternating_phi_45_degree_apart"
+  multi_view_optimise_option: "4_side_views_only_in_batch"     # select the correct "target_image_folder"
   target_image_folder: /users/oishideb/oishideb/mv_dream_Cow_target_img_4_views # 4 views
   # target_image_folder: /users/oishideb/oishideb/mv_dream_Cow_target_img_2_views # 2 views
   pose_update_interval: 1
@@ -79,7 +102,7 @@ model:
   cyc_consi_check_dist_threshold: 9 # 15
   cyc_check_img_save: True # This saves all the images with Cycle Consistency Check
   # seed: 60
-  target_image_fixed: True
+  target_image_fixed: False
   save_individual_img: False    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
   
   correspond:
@@ -91,7 +114,8 @@ model:
   articulation_predictor:
     _target_: dos.predictors.articulation_predictor.ArticulationPredictor  # Class Name
     size_dataset: 49
-    num_bones: 47 # GLTF cow has 47 bones
+    num_bones: 47 # GLTF cow has 47 bones   # previous ver has 20 bones
+    bone_initial_range: 0.0   # zero initialisation for bones
     # degree: 60
     
   renderer:   # variable Name
@@ -102,7 +126,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2506_Cow_mv_dream_lr_0_0009_4_views_interval_1/sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2865_cow_gltf_vis/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     prompts_source: '' #.The photo should have a grey background.' 
@@ -126,7 +150,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2506_Cow_mv_dream_lr_0_0009_4_views_interval_1
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2865_cow_gltf_vis
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
 save_each_iteration: True
@@ -138,9 +162,9 @@ device: cuda:0
 # resume: True
 
 # learning_rate: 1e-9  # tried with 0.01, 0.5, 0.9, 1;   # 1e-4   # DOS_1432
-learning_rate: 0.00095 # 0.0005          
+learning_rate: 0.00090 # 0.0005          
 # for debugging
-num_iterations: 80
+num_iterations: 100
 num_vis_iterations: 1
 num_eval_iterations: 10
 save_checkpoint_freq: 50

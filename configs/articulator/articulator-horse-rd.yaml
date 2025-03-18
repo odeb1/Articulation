@@ -13,6 +13,8 @@ train_dataset:
     - name: camera_matrix
       suffix: _camera.txt
 
+superAni_trainer_ON: True
+
 model:
   _target_: dos.models.articulator_grad_based.Articulator  # Other option is articulator_grad_based; articulator_nelder_mead
   bones_predictor:
@@ -24,28 +26,36 @@ model:
 
   gltf_skin:
     _target_: dos.components.skinning.gltf_skinning.Skin
-    # gltf_file_path: /users/oishideb/oishideb/Horse_stallion_IP.gltf
-    gltf_file_path: /users/oishideb/oishideb/HorseFemaleRD/HorseFemaleRD.gltf
+    # gltf_file_path: /users/oishideb/oishideb/Horse_stallion_IP.gltf                       # 20 bones
+    gltf_file_path: /users/oishideb/oishideb/HorseFemaleRD/HorseFemaleRD.gltf             # Rest Pose
+    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/HorseFemaleRD_running_pose/HorseFemaleRD.gltf # Running Pose
+    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/HorseFemaleRD_walk_pose/HorseFemaleRD/HorseFemaleRD.gltf  # Walking Pose
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2411_Horse
-  target_image_folder: /work/oishideb/horse_sd_generated_3_new_mvDream
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2871_horse_gltf_vis
   superAnimal_kp_ON: True
-  super_Ani_head_kps_ON: False
-  super_Ani_body_kps_ON: False
-  all_4_legs_kps_ON: True
-  num_pose_for_optim: 1
-  num_pose_for_visual: 30
+
+  super_Ani_head_kps_ON:             False
+  super_Ani_all_kps_except_face_ON:  False
+  super_Ani_body_n_front_legs_ON:    False
+  super_Ani_body_neck_front_legs_ON: False
+  super_Ani_face_kps_ON:             False
+  super_Ani_neck_kps_ON:             False
+  super_Ani_body_kps_ON:             False
+  all_4_legs_kps_ON:                 False
+  front_left_leg_kps_ON:             False
+  front_right_leg_kps_ON:            False
+  back_left_leg_kps_ON:              False
+  back_right_leg_kps_ON:             False
+
+  num_pose_for_optim: 4
+  num_pose_for_visual: 8
+  num_pose_for_visual_3D: 300        # for 3D
   num_sample_bone_line: 5  #
   num_sample_farthest_points: 150
-  mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
-  # shape_template_path: /work/oishideb/from_nfs2/animal_assets/uploads-files-2390590-Horse_Family_v01/Horse_HighPoly.obj
-  # shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_stallion_HighPoly.obj    # has 6289 vertices
-  # shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_LowPoly.obj
-  # shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_stallion_LowPoly.obj
-  # shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_foal_highPoly.obj        # has 5907 vertices
-  # shape_template_path: /users/oishideb/from_nfs2/uploads-files-2390590-Horse_Family_v01/Horse_foal_LowPoly.obj
-  shape_template_path: /users/oishideb/oishideb/HorseFemaleRD/HorseFemaleRD.obj
-  # shape_template_path: /users/oishideb/oishideb/horse-v4.obj
+  mode_kps_selection: "kps_based_on_superAnimal" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
+  shape_template_path: /users/oishideb/oishideb/HorseFemaleRD/HorseFemaleRD.obj             # Rest Pose #
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/HorseFemaleRD_running_pose/HorseFemaleRD.obj  # Running Pose
+  # shape_template_path: /users/oishideb/oishideb/HorseFemaleRD_walk_pose/HorseFemaleRD/HorseFemaleRD.obj # bad file - Walking Pose
   enable_texture_predictor: False
   
   view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"
@@ -63,8 +73,13 @@ model:
   # "alternate_4_side_views_each_step_along_azimuth"
   # "multiple_random_phi_in_batch"      # if selected this, then specify the no. here - "num_pose_for_optim"
   # "2_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim"
+  # 4_side_views_only_in_batch
   # "guidance_and_rand_views_in_batch"  # if selected this, then specify the no. here - "num_pose_for_optim" as 2
-  multi_view_optimise_option: "multiple_random_phi_in_batch"
+  multi_view_optimise_option: "4_side_views_only_in_batch"
+  # target_image_folder: /users/oishideb/oishideb/mv_dream_Horse_target_img_4_views
+  target_image_folder: /users/oishideb/oishideb/all_mvdream_target_img_folders/horse_run_blender  # Blender target
+  # target_image_folder: /users/oishideb/oishideb/Homer_Simpson_hands_up_target_img       # Homer hands up
+  pose_update_interval: 1
 
   bones_rotations: "bones_rotations" # Options are "bones_rotations"; "DUMMY_bones_rotations"; "NO_bones_rotations"
   using_pil_object: False
@@ -85,6 +100,7 @@ model:
     _target_: dos.predictors.articulation_predictor.ArticulationPredictor  # Class Name
     size_dataset: 49
     num_bones: 46
+    bone_initial_range: 0.0   # zero initialisation for bones
     degree: 70
     
   renderer:   # variable Name
@@ -95,7 +111,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2411_Horse/sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2871_horse_gltf_vis/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     # prompts: 'A photograph of a single cow running very fast, back view.' #.The photo should have a grey background.' # DOS-1338  opti multi_view_azimu, GS20, Num_Infe50
@@ -122,7 +138,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2411_Horse
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2871_horse_gltf_vis
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
 save_each_iteration: True
@@ -134,9 +150,9 @@ device: cuda:0
 # resume: True
 
 # learning_rate: 1e-9  # tried with 0.01, 0.5, 0.9, 1;   # 1e-4   # DOS_1432
-learning_rate: 0.002          # DOS_1433
+learning_rate: 0.0005          
 # for debugging
-num_iterations: 40
+num_iterations: 500
 num_vis_iterations: 1
 num_eval_iterations: 10
 save_checkpoint_freq: 50

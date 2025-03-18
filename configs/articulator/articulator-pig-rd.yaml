@@ -13,6 +13,8 @@ train_dataset:
     - name: camera_matrix
       suffix: _camera.txt
 
+superAni_trainer_ON: True
+
 model:
   _target_: dos.models.articulator.Articulator 
   bones_predictor:
@@ -23,11 +25,27 @@ model:
     temperature: 0.05
 
   path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2126_Pig_walk
+  target_image_folder: /work/oishideb/horse_sd_generated_3_new_mvDream
+  superAnimal_kp_ON: True
+
+  super_Ani_head_kps_ON:            False
+  super_Ani_all_kps_except_face_ON: False
+  super_Ani_body_n_front_legs_ON:   False
+  super_Ani_body_neck_front_legs_ON: False
+  super_Ani_face_kps_ON:            False
+  super_Ani_neck_kps_ON:            False
+  super_Ani_body_kps_ON:            False
+  all_4_legs_kps_ON:                True
+  front_left_leg_kps_ON:            False
+  front_right_leg_kps_ON:           False
+  back_left_leg_kps_ON:             False
+  back_right_leg_kps_ON:            False
+
   num_pose_for_optim: 1
   num_pose_for_visual: 30
   num_sample_bone_line: 4  # 
   num_sample_farthest_points: 350
-  mode_kps_selection: "kps_fr_sample_on_bone_line" # Options are "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
+  mode_kps_selection: "kps_based_on_superAnimal" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
   shape_template_path: /work/oishideb/from_nfs2/uploads-files-2539169-Pig_Family_v01/Pig_Female_v01/Pig_Female_HighPoly.obj
   enable_texture_predictor: False
 
@@ -68,6 +86,7 @@ model:
     _target_: dos.predictors.articulation_predictor.ArticulationPredictor  # Class Name
     size_dataset: 49
     num_bones: 47
+    bone_initial_range: 0.0   # zero initialisation for bones
     degree: 70
     
   renderer:   # variable Name

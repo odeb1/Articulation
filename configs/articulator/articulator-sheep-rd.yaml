@@ -13,8 +13,10 @@ train_dataset:
     - name: camera_matrix
       suffix: _camera.txt
 
+superAni_trainer_ON: True
+
 model:
-  _target_: dos.models.articulator.Articulator 
+  _target_: dos.models.articulator_grad_based.Articulator 
   bones_predictor:
     _target_: dos.components.skinning.bones_estimation.BonesEstimator
     num_body_bones: 8
@@ -22,13 +24,36 @@ model:
     body_bones_type: z_minmax_y+
     temperature: 0.05
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2127_Sheep_walk
-  num_pose_for_optim: 1
-  num_pose_for_visual: 30
+  gltf_skin:
+    _target_: dos.components.skinning.gltf_skinning.Skin
+    gltf_file_path: /users/oishideb/oishideb/SheepFemaleRD/SheepFemaleRD.gltf              # Rest Pose
+    # gltf_file_path: /users/oishideb/oishideb/SheepFemaleRD_running_pose/SheepFemaleRD.gltf   # Running Pose
+
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3123_sheep_rest_pose
+  superAnimal_kp_ON: True
+
+  super_Ani_head_kps_ON:            False
+  super_Ani_all_kps_except_face_ON: True
+  super_Ani_body_n_front_legs_ON:   False
+  super_Ani_body_neck_front_legs_ON: False
+  super_Ani_face_kps_ON:            False
+  super_Ani_neck_kps_ON:            False
+  super_Ani_body_kps_ON:            False
+  all_4_legs_kps_ON:                False
+  front_left_leg_kps_ON:            False
+  front_right_leg_kps_ON:           False
+  back_left_leg_kps_ON:             False
+  back_right_leg_kps_ON:            False
+
+  num_pose_for_optim: 4
+  num_pose_for_visual: 6
+  num_pose_for_visual_3D: 300
   num_sample_bone_line: 4  # 
   num_sample_farthest_points: 350
-  mode_kps_selection: "kps_fr_sample_on_bone_line" # Options are "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
-  shape_template_path: /work/oishideb/from_nfs2/uploads-files-2571750-Sheep_Family_v01/Sheep_HighPoly.obj
+  mode_kps_selection: "kps_based_on_superAnimal" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
+  # shape_template_path: /work/oishideb/from_nfs2/uploads-files-2571750-Sheep_Family_v01/Sheep_HighPoly.obj   # 20 bones
+  shape_template_path: /users/oishideb/oishideb/SheepFemaleRD/SheepFemaleRD.obj             # Rest Pose
+  # shape_template_path: /users/oishideb/oishideb/SheepFemaleRD_running_pose/SheepFemaleRD.obj  # Running Pose
   enable_texture_predictor: False
 
   view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"
@@ -45,10 +70,12 @@ model:
   # "alternate_2_side_views_each_step_along_azimuth"
   # "alternate_4_side_views_each_step_along_azimuth"
   # "multiple_random_phi_in_batch"      # if selected this, then specify the no. here - "num_pose_for_optim"
-  # "2_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim"
+  # "2_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim" as 2
+  # "4_side_views_only_in_batch"        # if selected this, then specify the no. here - "num_pose_for_optim" as 4
   # "guidance_and_rand_views_in_batch"  # if selected this, then specify the no. here - "num_pose_for_optim" as 2
-  multi_view_optimise_option: "get_2_alternating_phi_45_degree_apart"
-
+  multi_view_optimise_option: "4_side_views_only_in_batch"
+  target_image_folder: /users/oishideb/oishideb/mv_dream_Sheep_target_img_4_views
+  pose_update_interval: 1
 
   bones_rotations: "bones_rotations" # Options are "bones_rotations"; "DUMMY_bones_rotations"; "NO_bones_rotations"
   using_pil_object: False
@@ -63,12 +90,13 @@ model:
     _target_: dos.components.fuse.compute_correspond.ComputeCorrespond
     only_dino: True # If TRUE, this will switch off the loading of ODISE model that extracts sd features for the FUSE Model.
     batch_compute: False    # Switch to turn on and off the Batch Computation for the correspondences
-    cyc_consi_check_switch: True  # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
+    cyc_consi_check_switch: False  # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
 
   articulation_predictor:
     _target_: dos.predictors.articulation_predictor.ArticulationPredictor  # Class Name
     size_dataset: 49
-    num_bones: 47
+    num_bones: 44
+    bone_initial_range: 0   # zero initialisation for bones
     degree: 70
     
   renderer:   # variable Name
@@ -79,7 +107,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2127_Sheep_walk/sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3123_sheep_rest_pose/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     # prompts: 'A photograph of a single cow running very fast, back view.' #.The photo should have a grey background.' # DOS-1338  opti multi_view_azimu, GS20, Num_Infe50
@@ -92,7 +120,7 @@ model:
     lr: 0.1  # For DeepFloyd+SDS
     lr_l2: 0.1  # For SD+SDS  1e4
     # seed: 8 # 6
-    num_inference_steps: 50
+    num_inference_steps: 1
     guidance_scale: 40
     dds: False
     select_diffusion_option: 'sd' # Options are sd, sd_XL, df, sd_dds_loss  # by default is sds loss
@@ -105,7 +133,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2127_Sheep_walk
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3123_sheep_rest_pose
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
 save_each_iteration: True
@@ -117,9 +145,9 @@ device: cuda:0
 # resume: True
 
 # learning_rate: 1e-9  # tried with 0.01, 0.5, 0.9, 1;   # 1e-4   # DOS_1432
-learning_rate: 0.002          # DOS_1433
+learning_rate: 0.00090          
 # for debugging
-num_iterations: 60
+num_iterations: 50
 num_vis_iterations: 1
 num_eval_iterations: 10
 save_checkpoint_freq: 50
