@@ -40,53 +40,133 @@ def create_bone_mesh(global_joint_transforms):
     return bone_vertices, bone_indices
 
 
-# Changed opacity to 0.0 from 0.50
-def plot_mesh_3d(vertices, indices, xlim=None, ylim=None, zlim=None, color='grey', facecolor=None, plot_vertices=True, fig=None, markersize=2, linewidth=1, opacity=0.40, name=None):
-    # Ensure vertices is a numpy array for easier manipulation
+# # Changed opacity to 0.0 from 0.50
+# def plot_mesh_3d(vertices, indices, xlim=None, ylim=None, zlim=None, color='white', facecolor=None, plot_vertices=True, fig=None, markersize=2, linewidth=1, opacity=0.40, name=None):
+#     # Ensure vertices is a numpy array for easier manipulation
+#     vertices = np.asarray(vertices)
+#     indices = np.asarray(indices)
+
+#     # Adjust vertices to swap Y and Z to make Y the up-axis
+#     vertices = vertices.copy()
+#     vertices[:, [1, 2]] = vertices[:, [2, 1]]
+    
+#     # Extract vertices positions
+#     x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
+    
+#     # Extract the indices for the vertices of each face
+#     i, j, k = indices[:, 0], indices[:, 1], indices[:, 2]
+    
+#     # Create the 3D mesh plot
+#     mesh = go.Mesh3d(x=x, y=y, z=z, i=i, j=j, k=k, color=color, opacity=opacity, flatshading=True, name=name)
+    
+#     data = [mesh]
+    
+#     # If plot_vertices is True, add the vertices as a scatter plot
+#     if plot_vertices:
+#         vertices_name = name + "_vertices" if name is not None else "vertices"
+#         vertices_plot = go.Scatter3d(x=x, y=y, z=z, mode='markers', marker=dict(size=markersize, color='green'), name=vertices_name)
+#         data.append(vertices_plot)
+        
+    
+#     # Create the figure
+#     if fig is None:
+#         fig = go.FigureWidget(data=data)
+#     else:
+#         for d in data:
+#             fig.add_trace(d)
+            
+#     fig.update_layout(
+#                     showlegend=False, # Removes x, y, z labels from legend
+#                     scene=dict(
+#                         xaxis_title='X Axis',
+#                         yaxis_title='Z Axis',
+#                         zaxis_title='Y Axis (up)'),
+#                         margin=dict(r=20, l=10, b=10, t=10))
+#     fig.update_layout(width=800, height=500)  # Adjust these values as needed
+#     fig.update_scenes(aspectmode='data') # Ensures same scaling on all axes
+#     # Update layout to reverse z-axis
+#     fig.update_layout(scene=dict(yaxis=dict(autorange='reversed')))
+
+#     return fig
+
+# Updated
+def plot_mesh_3d(vertices, indices, xlim=None, ylim=None, zlim=None, color='white', facecolor=None, plot_vertices=True, fig=None, markersize=2, linewidth=1, opacity=0.55, name=None):
+    """
+    Plots a 3D mesh using Plotly.
+
+    Args:
+        vertices: A NumPy array of vertex coordinates (Nx3).
+        indices: A NumPy array of indices defining the faces of the mesh (Mx3).
+        xlim, ylim, zlim: Tuples specifying the limits for each axis.
+        color: Color of the mesh faces.
+        facecolor: Optional face color for the mesh.
+        plot_vertices: If True, plots the individual vertices as points.
+        fig: An existing Plotly FigureWidget to add the mesh to.
+        markersize: Size of the vertices if plotted.
+        linewidth: Width of the mesh lines.
+        opacity: Opacity of the mesh.
+        name: Name for the mesh and vertices in the legend.
+
+    Returns:
+        A Plotly FigureWidget containing the 3D mesh plot.
+    """
+
     vertices = np.asarray(vertices)
     indices = np.asarray(indices)
 
     # Adjust vertices to swap Y and Z to make Y the up-axis
     vertices = vertices.copy()
     vertices[:, [1, 2]] = vertices[:, [2, 1]]
-    
-    # Extract vertices positions
+
     x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
-    
-    # Extract the indices for the vertices of each face
     i, j, k = indices[:, 0], indices[:, 1], indices[:, 2]
-    
-    # Create the 3D mesh plot
-    mesh = go.Mesh3d(x=x, y=y, z=z, i=i, j=j, k=k, color=color, opacity=opacity, flatshading=True, name=name)
-    
+
+    mesh = go.Mesh3d(
+        x=x, y=y, z=z, i=i, j=j, k=k, 
+        color=color, opacity=opacity, flatshading=True, name=name
+    )
+
     data = [mesh]
-    
-    # If plot_vertices is True, add the vertices as a scatter plot
+
     if plot_vertices:
         vertices_name = name + "_vertices" if name is not None else "vertices"
-        vertices_plot = go.Scatter3d(x=x, y=y, z=z, mode='markers', marker=dict(size=markersize, color='red'), name=vertices_name)
+        vertices_plot = go.Scatter3d(
+            x=x, y=y, z=z, mode='markers', 
+            marker=dict(size=markersize, color='green'), 
+            name=vertices_name,
+            showlegend=False  # Hide legend for vertices
+        )
         data.append(vertices_plot)
-        
-    
-    # Create the figure
+
     if fig is None:
         fig = go.FigureWidget(data=data)
     else:
         for d in data:
             fig.add_trace(d)
+
     fig.update_layout(
-                    showlegend=True,
-                    scene=dict(
-                        xaxis_title='X Axis',
-                        yaxis_title='Z Axis',
-                        zaxis_title='Y Axis (up)'),
-                        margin=dict(r=20, l=10, b=10, t=10))
-    fig.update_layout(width=800, height=500)  # Adjust these values as needed
-    fig.update_scenes(aspectmode='data') # Ensures same scaling on all axes
-    # Update layout to reverse z-axis
+        showlegend=True,
+        scene=dict(
+            xaxis=dict(showticklabels=False, title=None),
+            yaxis=dict(showticklabels=False, title=None),
+            zaxis=dict(showticklabels=False, title=None),
+            # Hide grid lines
+            xaxis_showgrid=False,
+            yaxis_showgrid=False,
+            zaxis_showgrid=False,
+            # Hide axes
+            xaxis_visible=False,
+            yaxis_visible=False,
+            zaxis_visible=False,
+        ),
+        margin=dict(r=20, l=10, b=10, t=10)
+    )
+    fig.update_layout(width=800, height=500)
+    fig.update_scenes(aspectmode='data')
     fig.update_layout(scene=dict(yaxis=dict(autorange='reversed')))
 
     return fig
+
 
 
 def update_mesh_3d(fig, data_indexes, new_data):
@@ -153,8 +233,10 @@ def add_visibility_control_for_fig_data(fig):
 
 
 def plot_skinned_mesh_3d(vertices, faces, global_joint_transforms, bone_names=None, visibility_control=False):
-    fig = plot_mesh_3d(vertices, faces, plot_vertices=False, name="mesh")
+    # plot_vertices set to True on 22nd Jan
+    fig_with_vertices = plot_mesh_3d(vertices, faces, plot_vertices=True, name="mesh")
+    fig_without_vertices = plot_mesh_3d(vertices, faces, plot_vertices=False, name="mesh")
     # fig = visualize_bones_individualy(global_joint_transforms, dims=[2, 1], ax=fig, in3d=True, names=bone_names)
     if visibility_control:
-        add_visibility_control_for_fig_data(fig)
-    return fig
+        add_visibility_control_for_fig_data(fig_with_vertices)
+    return fig_with_vertices, fig_without_vertices
