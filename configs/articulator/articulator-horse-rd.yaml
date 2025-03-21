@@ -14,7 +14,7 @@ train_dataset:
       suffix: _camera.txt
 
 model:
-  _target_: dos.models.articulator.Articulator 
+  _target_: dos.models.articulator_grad_based.Articulator 
   bones_predictor:
     _target_: dos.components.skinning.bones_estimation.BonesEstimator
     num_body_bones: 8
