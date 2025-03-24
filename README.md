@@ -1,5 +1,4 @@
-# Articulation Project
-In development.
+# Project
 
 ## Installation
 Git modules are used for dependencies. To clone the repository with all submodules, use the following command:
@@ -7,7 +6,7 @@ Git modules are used for dependencies. To clone the repository with all submodul
 git clone --recursive
 ```
 
-## Runining 
+## Running 
 ```
 python main.py <paths_to_config_files>
 Eg: python main.py ./configs/oishi.yaml ./configs/articulator/articulator-tiger-rd.yaml
