@@ -2,7 +2,7 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset          # Class Name
-  root_dir: /work/oishideb/cow_sd_generated_5  # /0_poses_target_img_NO_KPs.png 
+  root_dir: ./assets/dummy_data/target
   attributes:
     - name: image
       suffix: _rgb.png
@@ -28,7 +28,7 @@ model:
     _target_: dos.components.skinning.gltf_skinning.Skin
     gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/humming_bird/humming_bird.gltf          # Rest gen Pose
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3166_humming_wings_down_white_background
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3179_humming_wings_up
   superAnimal_kp_ON: False   # IMPORTANT: switich on/off superAni_trainer_ON and change mode_kps_selection
 
   super_Ani_head_kps_ON:             False
@@ -48,7 +48,7 @@ model:
   num_pose_for_visual: 8
   num_pose_for_visual_3D: 300        # for 3D
   num_sample_bone_line: 4  # 
-  num_sample_farthest_points: 15
+  num_sample_farthest_points: 30
   mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
   # shape_template_path: /work/oishideb/from_nfs2/uploads-files-2571750-Sheep_Family_v01/Sheep_HighPoly.obj   # 20 bones
   # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger/tiger.obj                   # Non rest Pose
@@ -118,7 +118,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3166_humming_wings_down_white_background/sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3179_humming_wings_up/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     prompts: 'A photograph of a hummingbird sitting, wings folded, back view.' #.The photo should have a grey background.' # DOS-1338  opti multi_view_azimu, GS20, Num_Infe50
@@ -144,7 +144,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3166_humming_wings_down_white_background
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3179_humming_wings_up
 
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
