@@ -35,8 +35,8 @@ import time
 import timeit
 import io
 
-from .utils import utils # Added
-from .modules.renderer import Renderer # Added
+from .utils import utils 
+from .modules.renderer import Renderer
 import torchvision.transforms.functional as F
 
 class InfiniteDataset(torch.utils.data.Dataset):
@@ -83,8 +83,8 @@ class Trainer:
     resume_with_latest: bool = False
     neptune_project: Optional[str] = None
     neptune_api_token: Optional[str] = None
-    renderer: Renderer = None # Added
-    evaluate_the_model: bool = True # Added
+    renderer: Renderer = None 
+    evaluate_the_model: bool = True 
     save_individual_img: bool = False
     
 
@@ -97,7 +97,7 @@ class Trainer:
         self.train_dataset = InfiniteDataset(self.train_dataset)
         self.model = self.model.to(self.device)
         
-        self.renderer = self.renderer if self.renderer is not None else Renderer() # Added
+        self.renderer = self.renderer if self.renderer is not None else Renderer() 
 
         # either both experiment_name and checkpoint_root_dir or only checkpoint_dir should be specified
         if self.checkpoint_dir is not None:
@@ -215,18 +215,21 @@ class Trainer:
         start_time = time.time()
         loss_dict = self.model.get_loss_dict(model_outputs, batch, metrics_dict)
         end_time = time.time()  # Record the end time
-        print(f"The 'get_loss_dict' took {end_time - start_time} seconds to run.")
+        # print(f"The 'get_loss_dict' took {end_time - start_time} seconds to run.")
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'get_loss_dict' took {end_time - start_time} seconds to run.\n")
         
-        print(model_outputs['mask_pred'].shape, model_outputs['target_silhouette'].shape)
+        # print(model_outputs['mask_pred'].shape, model_outputs['target_silhouette'].shape)
         # channel_last_torch_tensor = torch.moveaxis(model_outputs['target_silhouette'][0].cpu(), 0, -1)
-        neptune_run[log_prefix + "/target_silhouettes"].append(neptune.types.File.as_image(model_outputs['target_silhouette'][0].cpu()), step=iteration)
-        # channel_last_torch_tensor = torch.moveaxis(model_outputs['render_silhouette'][0].cpu(), 0, -1)
-        neptune_run[log_prefix + "/render_silhouettes"].append(neptune.types.File.as_image(model_outputs['mask_pred'][0].cpu()), step=iteration)
-        for index in range(len(model_outputs['flows_viz'])):
-            print(model_outputs['flows'][index].shape)
-            neptune_run[log_prefix + f"/flow_{index}"].append(neptune.types.File.as_image(model_outputs['flows_viz'][index]), step=iteration)
+        
+        # Silhouette logging ---------------- Commented out for now
+        # neptune_run[log_prefix + "/target_silhouettes"].append(neptune.types.File.as_image(model_outputs['target_silhouette'][0].cpu()), step=iteration)
+        # # channel_last_torch_tensor = torch.moveaxis(model_outputs['render_silhouette'][0].cpu(), 0, -1)
+        # neptune_run[log_prefix + "/render_silhouettes"].append(neptune.types.File.as_image(model_outputs['mask_pred'][0].cpu()), step=iteration)
+        # for index in range(len(model_outputs['flows_viz'])):
+        #     # print(model_outputs['flows'][index].shape)
+        #     neptune_run[log_prefix + f"/flow_{index}"].append(neptune.types.File.as_image(model_outputs['flows_viz'][index]), step=iteration)
+        # # -----------------------------------
     
         visuals_dict = self.model.get_visuals_dict(model_outputs, batch)
         
@@ -396,7 +399,6 @@ class Trainer:
         
         num_batches = 0
         # Training loop
-        print('len train_loader', len(train_loader))
         for run_iteration, batch in tqdm(enumerate(train_loader)):
             iteration = start_total_iter + run_iteration
             

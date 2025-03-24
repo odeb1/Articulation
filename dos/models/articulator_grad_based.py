@@ -280,7 +280,7 @@ class Articulator(BaseModel):
         end_time = time.time()  # Record the end time
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'get_visible_vertices' took {end_time - start_time} seconds to run.\n")
-        print(f"The get_visible_vertices function took {end_time - start_time} seconds to run.")
+        # print(f"The get_visible_vertices function took {end_time - start_time} seconds to run.")
         
         eroded_mask = self.mask_erode_tensor(rendered_mask)
             
@@ -306,14 +306,14 @@ class Articulator(BaseModel):
             end_time = time.time()  # Record the end time
             # with open('log.txt', 'a') as file:
             #     file.write(f"The 'compute_correspondences_sd_dino' took {end_time - start_time} seconds to run.\n")    
-            print(f"The compute_correspondences_sd_dino function took {end_time - start_time} seconds to run.")
+            # print(f"The compute_correspondences_sd_dino function took {end_time - start_time} seconds to run.")
         else:
             start_time = time.time()
             rendered_image_with_kps_list, rendered_image_NO_kps_list, target_image_with_kps_list, target_image_NO_kps_list, corres_target_kps_tensor_stack, rendered_target_image_with_wo_kps_list = self.correspond.compute_correspondences_sd_dino(img1_tensor=rendered_image, img1_kps=kps_img_resolu, img2_tensor=target_image, using_pil_object=self.using_pil_object)
             end_time = time.time()  # Record the end time
             # with open('log.txt', 'a') as file:
             #     file.write(f"The 'compute_correspondences_sd_dino' took {end_time - start_time} seconds to run.\n")    
-            print(f"The compute_correspondences_sd_dino function took {end_time - start_time} seconds to run.")      
+            # print(f"The compute_correspondences_sd_dino function took {end_time - start_time} seconds to run.")      
         
             
         # IF TRUE, REMOVE POINTS FOLLOWING CYCLE CONSISTENCY CHECK
@@ -411,7 +411,7 @@ class Articulator(BaseModel):
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'bones_predictor' took {end_time - start_time} seconds to run.\n")
                 
-        print(f"The bones_predictor function took {end_time - start_time} seconds to run.")
+        # print(f"The bones_predictor function took {end_time - start_time} seconds to run.")
 
         batch_size, _ = bones_predictor_outputs["bones_pred"].shape[:2]
         
@@ -423,7 +423,7 @@ class Articulator(BaseModel):
             end_time = time.time()  # Record the end time
             # with open('log.txt', 'a') as file:
             #     file.write(f"The 'articulation_predictor' took {end_time - start_time} seconds to run.\n")
-            print(f"The articulation_predictor function took {end_time - start_time} seconds to run.")
+            # print(f"The articulation_predictor function took {end_time - start_time} seconds to run.")
             
         elif self.bones_rotations == "NO_bones_rotations":
             # NO BONE ROTATIONS
@@ -473,7 +473,7 @@ class Articulator(BaseModel):
         end_time = time.time()  # Record the end time
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'mesh_skinning' took {end_time - start_time} seconds to run.\n")
-        print(f"The mesh_skinning function took {end_time - start_time} seconds to run.")
+        # print(f"The mesh_skinning function took {end_time - start_time} seconds to run.")
         
         #articulated_bones_predictor_outputs = self.bones_predictor(articulated_mesh.v_pos)
         
@@ -487,7 +487,7 @@ class Articulator(BaseModel):
             start_time = time.time()
             material = self.texture_predictor
             end_time = time.time()
-            print(f"The function took {end_time - start_time} seconds to run.\n")
+            # print(f"The function took {end_time - start_time} seconds to run.\n")
         else:
             # if texture predictor is not enabled, use the loaded material from the mesh
             material = mesh.material
@@ -528,7 +528,7 @@ class Articulator(BaseModel):
         end_time = time.time()  # Record the end time
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'renderer' took {end_time - start_time} seconds to run.\n")
-        print(f"The renderer function took {end_time - start_time} seconds to run.")
+        # print(f"The renderer function took {end_time - start_time} seconds to run.")
         
         start_time = time.time()
         # get visible vertices
@@ -542,7 +542,7 @@ class Articulator(BaseModel):
         end_time = time.time()
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'get_camera_extrinsics_and_mvp_from_pose' compute took {end_time - start_time} seconds to run.\n")
-        print(f"The 'get_camera_extrinsics_and_mvp_from_pose' function took {end_time - start_time} seconds to run.")
+        # print(f"The 'get_camera_extrinsics_and_mvp_from_pose' function took {end_time - start_time} seconds to run.")
         
         # Creates an empty tensor to hold the final result
         # all_generated_target_img shape is [num_pose, 3, 256, 256]
@@ -630,7 +630,7 @@ class Articulator(BaseModel):
                     c2w = w2c.permute(0, 2, 1),     # Transpose the 3D matrix
                 )
                 # target_img_rgb shape torch.Size([4, 3, 512, 512])
-                print('target_img_rgb shape', target_img_rgb.shape)
+                # print('target_img_rgb shape', target_img_rgb.shape)
                 
                 #  input_image=renderer_outputs["image_pred"] TO DO - remove .detach() for only SDS baseline. 
                 
@@ -643,6 +643,11 @@ class Articulator(BaseModel):
             # Inserts the new image into the final tensor
             # resizes the image to the target resolution
             target_img_rgb = torch.nn.functional.interpolate(target_img_rgb, size=renderer_outputs["image_pred"].shape[2:], mode='bilinear', align_corners=False)
+            
+            global flows
+            if True: #iteration % 15 == 0:
+                flows = []
+            
             for i in range(pose.shape[0]):
                 # target_img_rgb.shape is [1, 3, 256, 256]
                 target_image_PIL = F.to_pil_image(target_img_rgb[0])
@@ -659,8 +664,27 @@ class Articulator(BaseModel):
                 # rendered_image_PIL_superAni = resize(rendered_image_PIL, target_res = 256, resize=True, to_pil=True)
                 rendered_image_PIL.save(f'{dir_path}{i}_rendered_image.png', bbox_inches='tight', pad_inches=0)
                 
-
                 
+                # Optical flow computation
+                src = renderer_outputs["image_pred"][i].unsqueeze(0)
+                tgt = target_img_rgb[0].unsqueeze(0)
+                # print(renderer_outputs["image_pred"].shape, src.shape)
+                if True: #iteration % 15 == 0:
+                    # torch.Size([1, 2, 32, 32]), torch.Size([1, 2, H, W])
+                    flow_low, flow_up = flow_model(image1=src, image2=tgt, iters=20, test_mode=True)
+                    # print(flow_low.shape)
+                    flows.append(flow_up)
+
+            if True: #iteration % 15 == 0:
+                flows = torch.cat(flows)    
+            # flows = torch.abs(flows)
+            # flows = flows > torch.quantile(flows, 0.95)
+
+            flows_viz = []
+            for flow_low in flows:
+                flows_viz.append(viz(src, tgt, flow_low, f'{i}_diff_pose_target_image.png'))
+
+
             # print('target_img_rgb.shape', target_img_rgb.shape)
             start_time = time.time()
             # compute_correspondences for keypoint loss
@@ -678,12 +702,20 @@ class Articulator(BaseModel):
             end_time = time.time()  # Record the end time
             # with open('log.txt', 'a') as file:
             #     file.write(f"The 'compute_correspondences' took {end_time - start_time} seconds to run.\n")
-            print(f"The compute_correspondences took {end_time - start_time} seconds to run.")
+            # print(f"The compute_correspondences took {end_time - start_time} seconds to run.")
             
             # TODO: probaly rename the ouputs of the renderer
             # outputs.update(target_img_rgb)
             
             outputs.update(correspondences_dict)
+            
+            outputs["target_img_rgb"] = target_img_rgb # range [0,1]
+            outputs["flows"] = flows
+            outputs["flows_viz"] = flows_viz
+            with torch.no_grad():
+                target_pil = to_pil_image(outputs["target_img_rgb"][0])
+                masks , _, _, _  = langsam_model.predict(target_pil, "cow")
+                outputs["target_silhouette"] = masks.float()
         
         
         outputs.update(renderer_outputs)        # renderer_outputs keys are dict_keys(['image_pred', 'mask_pred', 'albedo', 'shading'])
@@ -729,8 +761,16 @@ class Articulator(BaseModel):
                 if len(set(last_losses)) == 1:  # All values are identical
                     print(f"Stopping early at iteration {iteration} due to no change in loss.")
                     break
+        
+        # loss = nn_functional.mse_loss(model_outputs["mask_pred"].float(), model_outputs["target_silhouette"].detach().float().to(model_outputs["mask_pred"].device))
+        # flows = model_outputs["flows"]
+        # clamped_flow = torch.clamp(input, min=torch.quantile(flows, 0.05), max=torch.quantile(flows, 0.95))
+        # flows = flows - clamped_flow
+        # loss = torch.abs(flows).sum()
+        # return {"loss": loss, "rendered_kps": model_outputs["rendered_kps"], "target_corres_kps": model_outputs["target_corres_kps"]}
             
         return {"loss": loss}
+
 
     def get_visuals_dict(self, model_outputs, batch, num_visuals=1):
         def _get_visuals_dict(input_dict, names):
@@ -869,7 +909,7 @@ class Articulator(BaseModel):
 
             
             end_time = time.time()  # Record the end time
-            print(f"The 'Saving img for every iterations' took {end_time - start_time} seconds to run.")
+            # print(f"The 'Saving img for every iterations' took {end_time - start_time} seconds to run.")
             
     
     # For Debugging purpose, save all the poses before optimisation
@@ -884,53 +924,6 @@ class Articulator(BaseModel):
             rendered_image_PIL.save(f'{dir_path}{i}_diff_pose_rendered_image.png', bbox_inches='tight')
             
     
-    
-    # bone_end_pt_1_3D = bones[:, :, 0, :]  # one end of the bone in 3D
-    # bone_end_pt_2_3D = bones[:, :, 1, :]  # other end of the bone in 3D
-    
-    # bones_in_3D_all_kp40 = torch.cat((bone_end_pt_1_3D, bone_end_pt_2_3D), dim=1)
-    # bones_2D_proj_all_kp40 = geometry_utils.project_points(bones_in_3D_all_kp40, mvp)
-    
-    # bone_end_pt_1_projected_in_2D = geometry_utils.project_points(bone_end_pt_1_3D, mvp)
-    # bone_end_pt_2_projected_in_2D = geometry_utils.project_points(bone_end_pt_2_3D, mvp)
-    
-    # bones_midpts_in_3D = (bones[:, :, 0, :] + bones[:, :, 1, :]) / 2.0        # This is in 3D the shape is torch.Size([2, 20, 3])
-    
-    # SAMPLE POINTS
-    # bones_midpts_in_3D = self.sample_points_on_line(bone_end_pt_1_3D, bone_end_pt_2_3D, num_sample_bone_line)
-    
-    # bones_midpts_projected_in_2D = geometry_utils.project_points(bones_midpts_in_3D, mvp)
-        
-    
-    
-    
-        # COMMENTING OUT THIS PART -------------
-        # start_time = time.time()
-        # ## get_vertices_inside_mask
-        # vertices_inside_mask = self.get_vertices_inside_mask(pixel_projected_visible_v_in_2D, eroded_mask)
-        # end_time = time.time()  # Record the end time
-        # # with open('log.txt', 'a') as file:
-        # #     file.write(f"The 'get_vertices_inside_mask' took {end_time - start_time} seconds to run.\n")
-        # print(f"The get_vertices_inside_mask function took {end_time - start_time} seconds to run.")
-        # kps_img_resolu = (vertices_inside_mask/256) * 840
-        # ---------------------------------------
-        
-        # bone_end_pt_1 = self.closest_visible_points(bone_end_pt_1_3D, articulated_mesh.v_pos, visible_vertices) # , eroded_mask)
-        # bone_end_pt_2 = self.closest_visible_points(bone_end_pt_2_3D, articulated_mesh.v_pos, visible_vertices) # , eroded_mask)
-        
-        # # bone_end_pt_1_in_2D_cls = geometry_utils.project_points(bone_end_pt_1, mvp)
-        # # bone_end_pt_2_in_2D_cls = geometry_utils.project_points(bone_end_pt_2, mvp)
-        
-        # # bones_mid_pt_in_2D = (bone_end_pt_1_in_2D_cls + bone_end_pt_2_in_2D_cls) / 2.0
-        
-        # bones_all = torch.cat((bone_end_pt_1, bone_end_pt_2), dim=1)
-        
-        # bones_all = self.closest_visible_points(bones_all, articulated_mesh.v_pos, visible_vertices) # , eroded_mask)
-        # # bones_closest_pts_2D_proj_all_kp40 = geometry_utils.project_points(bones_all, mvp)
-        # print("kps_img_resolu", kps_img_resolu)
-        
-        # return kps_img_resolu
-          
     
     # Keypoint selection using sampling points on the bone line.
     def kps_fr_sample_on_bone_line(self, bones, mvp, articulated_mesh, visible_vertices, num_sample_bone_line, eroded_mask):
@@ -957,7 +950,7 @@ class Articulator(BaseModel):
         end_time = time.time()  # Record the end time
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'closest_visible_points' took {end_time - start_time} seconds to run.\n")
-        print(f"The closest_visible_points function took {end_time - start_time} seconds to run.")
+        # print(f"The closest_visible_points function took {end_time - start_time} seconds to run.")
         
         ## shape of bones_closest_pts_2D_proj is ([Batch-size, 20, 2])
         bones_closest_midpts_projected_in_2D_all_kp20 = geometry_utils.project_points(closest_midpts, mvp)
@@ -966,17 +959,15 @@ class Articulator(BaseModel):
         pixel_projected_visible_v_in_2D = (bones_closest_midpts_projected_in_2D_all_kp20 + 1) * eroded_mask.size(1)/2
         img_pixel_reso = (pixel_projected_visible_v_in_2D/256) * 840
         kps_img_resolu = (pixel_projected_visible_v_in_2D/256) * 840
-        # print('img_pixel_reso ', img_pixel_reso)
         
         start_time = time.time()
-        ## get_vertices_inside_mask
         vertices_inside_mask = self.get_vertices_inside_mask(pixel_projected_visible_v_in_2D, eroded_mask)
         
         end_time = time.time()  # Record the end time
         # with open('log.txt', 'a') as file:
         #     file.write(f"The 'get_vertices_inside_mask' took {end_time - start_time} seconds to run.\n")
         
-        print(f"The get_vertices_inside_mask function took {end_time - start_time} seconds to run.")
+        # print(f"The get_vertices_inside_mask function took {end_time - start_time} seconds to run.")
     
         kps_img_resolu = (vertices_inside_mask/256) * 840
         
@@ -1446,14 +1437,13 @@ class Articulator(BaseModel):
         try:   
             # Group Bodyparts together
             # image_coords[0] is a tensor of shape [39, 2]
-            print("image_coords[0] length", len(image_coords[0]))
+            # print("image_coords[0] length", len(image_coords[0]))
             # Define bodypart_dict with fallback checks
             bodypart_dict = {
                 # For each body part, use `get_valid_tensor` to choose the first non-empty tensor
                 "jaw": self.get_valid_tensor(image_coords[0], 0, 5), 
                 "face": self.get_valid_tensor(image_coords[0], 5, 15),    # image_coords[0][5:15]),  # 6th to 15th values
                 "neck": self.get_valid_tensor(image_coords[0], 15, 19),   # image_coords[0][15:19]) 16th to 19th values
-                # "neck": None,
                 "body": self.safe_cat([
                         self.get_valid_tensor(image_coords[0], 19, 24),     # image_coords[0][19:24])
                         self.get_valid_tensor(image_coords[0], 36, 39)      # image_coords[0][36:39])
@@ -1472,14 +1462,6 @@ class Articulator(BaseModel):
         except IndexError:
             print(f'Warning: image_coords[0] is empty. Skipping this image: {image_path}')
             return  # Exit the function:
-
-        #------------
-        # try:
-        #     bodypart_dict["neck"] = self.get_valid_tensor(image_coords[0], 15, 19)
-        # except IndexError:
-        #     print("Error: Invalid index for 'neck' in image_coords")
-        #     # Skip processing the 'neck' key
-        #------------
             
 
         img_coord_tensor_all_legs = torch.cat((bodypart_dict["front_left_leg"], bodypart_dict["front_right_leg"], bodypart_dict["back_left_leg"], bodypart_dict["back_right_leg"]))
@@ -1615,7 +1597,7 @@ class Articulator(BaseModel):
         # Process the resized image with get_superAni_kps_and_image
         target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni, image_name1 = self.get_superAni_kps_and_image(image_path)
         # Optionally, print or log the current iteration and image being used
-        print(f"Iteration {iteration + 1}, using image: {filename}")
+        # print(f"Iteration {iteration + 1}, using image: {filename}")
         return target_img_coordinates_tensor_superAni, target_images_with_kps_batch_superAni
     
     def process_target_images_folder_as_Batch(self, resized_folder_path):

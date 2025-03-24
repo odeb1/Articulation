@@ -46,7 +46,7 @@ class ComputeCorrespond:
         self.start_time = time.time()
         self.extractor = ViTExtractor(self.model_type, self.stride, device=self.device)
         self.end_time = time.time()
-        print(f'The ViTExtractor function took {self.end_time - self.start_time} seconds to run.')
+        # print(f'The ViTExtractor function took {self.end_time - self.start_time} seconds to run.')
         self.batch_compute = batch_compute
         self.cyc_consi_check_switch = cyc_consi_check_switch
         
@@ -65,7 +65,7 @@ class ComputeCorrespond:
                 block_indices=(2, 5, 8, 11)
             )
             end_time = time.time()  # Record the end time
-            print(f"The ODISE model (required for sd feature extraction for FUSE model) loading took {end_time - start_time} seconds to run.\n")
+            # print(f"The ODISE model (required for sd feature extraction for FUSE model) loading took {end_time - start_time} seconds to run.\n")
 
               
     def compute_correspondences_sd_dino(self, img1_tensor, img1_kps, img2_tensor, using_pil_object, index=0, files=None, category='horse', mask=False, thresholds=None, real_size=960):  # kps,
@@ -142,15 +142,14 @@ class ComputeCorrespond:
             img1_patch_idx = num_patches * img1_y_patch + img1_x_patch
             
             # Load image 1
-            print("img1_tensor shape", img1_tensor.shape)
+            # print("img1_tensor shape", img1_tensor.shape)
             img1 = torchvision.transforms.functional.to_pil_image(img1_tensor[index])   
             img1_input = resize(img1, real_size, resize=True, to_pil=True, edge=self.EDGE_PAD) # this is for sd - img size used is 960*960
             img1 = resize(img1, img_size, resize=True, to_pil=True, edge=self.EDGE_PAD)        # this is for DINO - img size used is 840*840
             
             # Load image 2
             # import ipdb; ipdb.set_trace()
-            print("img2_tensor shape", img2_tensor.shape)
-            print('index', index)
+            # print("img2_tensor shape", img2_tensor.shape)
             img2 = torchvision.transforms.functional.to_pil_image(img2_tensor[index])
             img2_input = resize(img2, real_size, resize=True, to_pil=True, edge=self.EDGE_PAD)
             img2 = resize(img2, img_size, resize=True, to_pil=True, edge=self.EDGE_PAD)
@@ -177,7 +176,7 @@ class ComputeCorrespond:
                         # # Open a file in append mode
                         # with open('log.txt', 'a') as file:
                         #     file.write(f"The process_features_and_mask function for img 1 took {end_time - start_time} seconds to run.\n")
-                        print(f"The process_features_and_mask function for img 1 and 2 took {end_time - start_time} seconds to run.")
+                        # print(f"The process_features_and_mask function for img 1 and 2 took {end_time - start_time} seconds to run.")
                         if not self.RAW:
                             processed_features1, processed_features2 = co_pca(features1, features2, self.PCA_DIMS)  # processed_features1 shape is torch.Size([1, 768, 60, 60])
                         else:                                                                                  # processed_features2 shape is torch.Size([1, 768, 60, 60])
@@ -219,13 +218,13 @@ class ComputeCorrespond:
                         # # Open a file in append mode
                         # with open('log.txt', 'a') as file:
                         #     file.write(f"The DINOV2 extractor.extract_descriptors function for img1 took {end_time - start_time} seconds to run.\n")
-                        print(f"The DINOV2 extractor.extract_descriptors function for img1 took {end_time - start_time} seconds to run.")
+                        # print(f"The DINOV2 extractor.extract_descriptors function for img1 took {end_time - start_time} seconds to run.")
                         start_time = time.time()
                         img2_desc_dino = self.extractor.extract_descriptors(img2_batch.to(self.device), layer, facet)     # img2_desc_dino shape is torch.Size([1, 1, 3600, 768])
                         # # Open a file in append mode
                         # with open('log.txt', 'a') as file:
                         #     file.write(f"The DINOV2 extractor.extract_descriptors function for img2 took {end_time - start_time} seconds to run.\n")
-                        print(f"The DINOV2 extractor.extract_descriptors function for img2 took {end_time - start_time} seconds to run.")
+                        # print(f"The DINOV2 extractor.extract_descriptors function for img2 took {end_time - start_time} seconds to run.")
                 if self.CO_PCA_DINO:
                     # print('Its using CO_PCA_DINO')
                     cat_desc_dino = torch.cat((img1_desc_dino, img2_desc_dino), dim=2).squeeze() # (1, 1, num_patches**2, dim)
@@ -313,7 +312,7 @@ class ComputeCorrespond:
                     # # Open a file in append mode
                     # with open('log.txt', 'a') as file:
                     #     file.write(f"The 'similarity matrix' compute took {end_time - start_time} seconds to run.\n")
-                    print(f"The 'similarity matrix' compute took {end_time - start_time} seconds to run.")
+                    # print(f"The 'similarity matrix' compute took {end_time - start_time} seconds to run.")
                 elif dist == 'l1':
                     print('It uses l1')
                     sim_1_to_2 = pairwise_sim(img1_desc, img2_desc, p=1).squeeze()
