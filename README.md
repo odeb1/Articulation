@@ -10,6 +10,7 @@ git clone --recursive
 ## Runining 
 ```
 python main.py <paths_to_config_files>
+Eg: python main.py /users/oishideb/Articulation/configs/oishi.yaml /users/oishideb/Articulation/configs/articulator/articulator-tiger-rd.yaml
 ```
 
 ## Development
