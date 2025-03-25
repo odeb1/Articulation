@@ -33,7 +33,7 @@ model:
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_hunting_blender/tiger.gltf   # Hunting gen Pose
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_sitting_blender/tiger.gltf   # Crawling gen Pose
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_rest_pose/tiger.gltf         # Rest gen Pose
-    gltf_file_path: ./assets/meshes/tiger_rest_pose/tiger.gltf
+    gltf_file_path: ./assets/meshes/tiger/tiger.gltf
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.gltf         # Walk Pose better
 
   path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3188_tiger_sitting_white_background
@@ -64,8 +64,8 @@ model:
   # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walking_blender/tiger.obj   # Walking  Pose
   # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_hunting_blender/tiger.obj   # Hunting  Pose
   # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_sitting_blender/tiger.obj   # Crawl  Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_rest_pose/tiger.obj           # Rest st Pose
-  shape_template_path: ./assets/meshes/tiger_rest_pose/tiger.obj
+  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_rest_pose/tiger.obj         # Rest st Pose
+  shape_template_path: ./assets/meshes/tiger/tiger.obj
   # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.obj         # Walk Pose better
   enable_texture_predictor: False
 
