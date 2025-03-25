@@ -2,7 +2,7 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset          # Class Name
-  root_dir: /users/oishideb/oishideb/cow_sd_generated_0  # /0_poses_target_img_NO_KPs.png 
+  root_dir: ./assets/dummy_data/target
   attributes:
     - name: image
       suffix: _rgb.png
@@ -26,15 +26,8 @@ model:
 
   gltf_skin:
     _target_: dos.components.skinning.gltf_skinning.Skin
-    # gltf_file_path: /users/oishideb/oishideb/SheepFemaleRD/SheepFemaleRD.gltf                   # Rest Pose
-    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger/tiger.gltf                   # Non rest pose
-    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_updated_pose/tiger.gltf      # Running gen Pose
-    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walking_blender/tiger.gltf   # Walking gen Pose
-    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_hunting_blender/tiger.gltf   # Hunting gen Pose
-    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_sitting_blender/tiger.gltf   # Crawling gen Pose
     gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/simpson_mesh_2/simpson.gltf            # Rest gen Pose
-    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.gltf         # Walk Pose better
-
+  
   path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-2984_simpson_1_arm
   superAnimal_kp_ON: False           # IMPORTANT: If FALSE, change the option here as well - mode_kps_selection, also change in "superAni_trainer_ON"
 
@@ -57,14 +50,7 @@ model:
   num_sample_bone_line: 4  # 
   num_sample_farthest_points: 35
   mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
-  # shape_template_path: /work/oishideb/from_nfs2/uploads-files-2571750-Sheep_Family_v01/Sheep_HighPoly.obj   # 20 bones
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger/tiger.obj                   # Non rest Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_updated_pose/tiger.obj      # Running  Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walking_blender/tiger.obj   # Walking  Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_hunting_blender/tiger.obj   # Hunting  Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_sitting_blender/tiger.obj   # Crawl  Pose
   shape_template_path: /users/oishideb/oishideb/mesh_assets_all/simpson_mesh_2/simpson.obj          # Rest st Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.obj         # Walk Pose better
   enable_texture_predictor: False
 
   view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"

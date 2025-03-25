@@ -32,7 +32,7 @@ model:
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walking_blender/tiger.gltf   # Walking gen Pose
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_hunting_blender/tiger.gltf   # Hunting gen Pose
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_sitting_blender/tiger.gltf   # Crawling gen Pose
-    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_rest_pose/tiger.gltf           # Rest gen Pose
+    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_rest_pose/tiger.gltf         # Rest gen Pose
     gltf_file_path: ./assets/meshes/tiger_rest_pose/tiger.gltf
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.gltf         # Walk Pose better
 

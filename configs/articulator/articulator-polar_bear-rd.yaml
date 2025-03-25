@@ -2,7 +2,7 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset          # Class Name
-  root_dir: /work/oishideb/cow_sd_generated_5  # /0_poses_target_img_NO_KPs.png 
+  root_dir: ./assets/dummy_data/target
   attributes:
     - name: image
       suffix: _rgb.png

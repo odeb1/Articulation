@@ -2,7 +2,7 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset          # Class Name
-  root_dir: /work/oishideb/cow_sd_generated_5  # /0_poses_target_img_NO_KPs.png 
+  root_dir: ./assets/dummy_data/target 
   attributes:
     - name: image
       suffix: _rgb.png
@@ -29,7 +29,7 @@ model:
     # gltf_file_path: /users/oishideb/oishideb/SheepFemaleRD/SheepFemaleRD.gltf              # Rest Pose
     gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/rabbit/rabbit.gltf   # Running Pose
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3071_rabbit_sitting
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3192_rabbit_white_backg
   superAnimal_kp_ON: False
 
   super_Ani_head_kps_ON:            False
@@ -107,7 +107,7 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3071_rabbit_sitting/sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3192_rabbit_white_backg/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
     vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
     # prompts: 'A photograph of a single cow running very fast, back view.' #.The photo should have a grey background.' # DOS-1338  opti multi_view_azimu, GS20, Num_Infe50
@@ -133,7 +133,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3071_rabbit_sitting
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3192_rabbit_white_backg
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1
 save_each_iteration: True
