@@ -26,7 +26,7 @@ model:
 
   gltf_skin:
     _target_: dos.components.skinning.gltf_skinning.Skin
-    gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/humming_bird/humming_bird.gltf          # Rest gen Pose
+    gltf_file_path: ./assets/meshes/humming_bird/humming_bird.gltf          # Rest gen Pose
 
   path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3179_humming_wings_up
   superAnimal_kp_ON: False   # IMPORTANT: switich on/off superAni_trainer_ON and change mode_kps_selection
@@ -50,13 +50,7 @@ model:
   num_sample_bone_line: 4  # 
   num_sample_farthest_points: 30
   mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
-  # shape_template_path: /work/oishideb/from_nfs2/uploads-files-2571750-Sheep_Family_v01/Sheep_HighPoly.obj   # 20 bones
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger/tiger.obj                   # Non rest Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_updated_pose/tiger.obj      # Running  Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walking_blender/tiger.obj   # Walking  Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_hunting_blender/tiger.obj   # Hunting  Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_sitting_blender/tiger.obj   # Crawl  Pose
-  shape_template_path: /users/oishideb/oishideb/mesh_assets_all/humming_bird/humming_bird.obj          # Rest st Pose
+  shape_template_path: ./assets/meshes/humming_bird/humming_bird.obj          # Rest st Pose
   # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.obj         # Walk Pose better
   enable_texture_predictor: False
 
@@ -84,8 +78,8 @@ model:
   multi_view_optimise_option: "8_side_views_only_in_batch"            # CHANGE num_pose_for_optim AND target_image_folder
   
   # target_image_folder: /users/oishideb/oishideb/all_mvdream_target_img_folders/humming_8_views    # Wings up CHANGE multi_view_optimise_option AND num_pose_for_optim
-  # target_image_folder: /users/oishideb/oishideb/all_mvdream_target_img_folders/humming_sit_8_views    # CHANGE multi_view_optimise_option AND num_pose_for_optim
-  target_image_folder: /users/oishideb/oishideb/all_mvdream_target_img_folders/humming_wing_down_new_target
+  # target_image_folder: /users/oishideb/oishideb/all_mvdream_target_img_folders/humming_sit_8_views  # CHANGE multi_view_optimise_option AND num_pose_for_optim
+  target_image_folder: ./assets/targets/humming_wing_down/humming_wing_down
   pose_update_interval: 1
 
   bones_rotations: "bones_rotations" # Options are "bones_rotations"; "DUMMY_bones_rotations"; "NO_bones_rotations"
@@ -120,12 +114,10 @@ model:
     cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
     output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3179_humming_wings_up/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
-    vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
+    vis_name: sds_latent-l2_image-600-lr1e-1.jpg
     prompts: 'A photograph of a hummingbird sitting, wings folded, back view.' #.The photo should have a grey background.' # DOS-1338  opti multi_view_azimu, GS20, Num_Infe50
     prompts_source: '' #.The photo should have a grey background.' # DOS-1339  opti multi_view_azimu, GS20, Num_Infe50
     # negative_prompts: 'front view, side view, tail, black' #  , cartoon, dead, shadow, reflection'     # the string shouldn't be in a square brackets ['']
-    # prompts: 'A photograph of a fully white cow running very fast, back view. All four legs should be visible. No cow tail'
-    # prompts: 'A photograph of a tiger streching front two legs forward.'
     view_dependent_prompting: True
     mode: sds_latent # Options are sds_image OR sds_latent-l2_image # sds_latent
     lr: 0.1  # For DeepFloyd+SDS
