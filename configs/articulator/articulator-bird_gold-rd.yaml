@@ -2,7 +2,7 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset          # Class Name
-  root_dir: /work/oishideb/cow_sd_generated_5  # /0_poses_target_img_NO_KPs.png 
+  root_dir: ./assets/dummy_data/target
   attributes:
     - name: image
       suffix: _rgb.png
@@ -29,7 +29,7 @@ model:
     gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/bird_gold_flat_wings/bird.gltf 
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.gltf         # Walk Pose better
 
-  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3112_bird_gold_0_002 
+  path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3186_bird_gold_0_002_white_backgr_sd_sds 
   superAnimal_kp_ON: False   # IMPORTANT: switich on/off superAni_trainer_ON and change mode_kps_selection
 
   super_Ani_head_kps_ON:             False
@@ -50,12 +50,11 @@ model:
   num_pose_for_visual_3D: 300        # for 3D 
   
   num_sample_bone_line: 4  # 
-  num_sample_farthest_points: 11
+  num_sample_farthest_points: 25
   mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
 
   # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/bird/bird.obj       # Rest st Pose
   shape_template_path: /users/oishideb/oishideb/mesh_assets_all/bird_gold_flat_wings/bird.obj         # Rest st Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.obj         # Walk Pose better
   enable_texture_predictor: False
 
   view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"
@@ -90,7 +89,7 @@ model:
   cyc_consi_check_dist_threshold: 10      # 15
   cyc_check_img_save: False # This saves all the images with Cycle Consistency Check
   # seed: 60
-  target_image_fixed: True
+  target_image_fixed: False
   save_individual_img: False    # IMPORTANT: THIS SAME VARIABLE IS USED AT TWO PLACES, SWITCH ON/OFF AT BOTH PLACES
   
   correspond:
@@ -114,20 +113,20 @@ model:
   diffusion_Text_to_Target_Img:  # variable Name
     _target_: dos.components.diffusion_model_text_to_image.diffusion_sds.DiffusionForTargetImg # Class Name
     cache_dir: /work/oishideb/from_nfs2/nfs2/.cache/huggingface_hub    # /work/oishideb/cache/huggingface_hub
-    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3112_bird_gold_0_002 /sd_sds_output/
+    output_dir: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3186_bird_gold_0_002_white_backgr_sd_sds/sd_sds_output/
     init_image_path: /users/oishideb/laam/dos/examples/data/cow.png
-    vis_name: cow-sds_latent-l2_image-600-lr1e-1.jpg
+    vis_name: sds_latent-l2_image-600-lr1e-1.jpg
     # prompts: 'A photograph of a single cow running very fast, back view.' #.The photo should have a grey background.' # DOS-1338  opti multi_view_azimu, GS20, Num_Infe50
     prompts_source: '' #.The photo should have a grey background.' # DOS-1339  opti multi_view_azimu, GS20, Num_Infe50
     # negative_prompts: 'front view, side view, tail, black' #  , cartoon, dead, shadow, reflection'     # the string shouldn't be in a square brackets ['']
     # prompts: 'A photograph of a fully white cow running very fast, back view. All four legs should be visible. No cow tail'
-    prompts: 'A photograph of a tiger streching front two legs forward.'
+    prompts: 'A photograph of a dark-bronze coloured bird flying, wings raised up, back view, back view.'
     view_dependent_prompting: True
     mode: sds_latent # Options are sds_image OR sds_latent-l2_image # sds_latent
     lr: 0.1  # For DeepFloyd+SDS
     lr_l2: 0.1  # For SD+SDS  1e4
     # seed: 8 # 6
-    num_inference_steps: 1
+    num_inference_steps: 50
     guidance_scale: 40
     dds: False
     select_diffusion_option: 'sd' # Options are sd, sd_XL, df, sd_dds_loss  # by default is sds loss
@@ -140,7 +139,7 @@ renderer:   # variable Name
   cam_pos_z_offset: 0.0
   fov: 28.84
 
-path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3112_bird_gold_0_002 
+path_to_save_img_per_iteration: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3186_bird_gold_0_002_white_backgr_sd_sds 
 
 checkpoint_root_dir: /work/oishideb/articulation_cow_chkpts
 experiment_name: articulator-dev-0.1

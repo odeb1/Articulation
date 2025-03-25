@@ -2,7 +2,8 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset       # Class Name
-  root_dir: /work/oishideb/cow_sd_generated_0        # mv_dream 45 deg side view
+  root_dir: ./assets/dummy_data/target
+  # root_dir: /work/oishideb/cow_sd_generated_0        # mv_dream 45 deg side view
   # root_dir: /work/oishideb/cow_sd_generated_2      # Fixed cow walking image 315 degree
   # root_dir: /work/oishideb/cow_sd_generated_3      # Fixed head bend cow image
   # root_dir: /work/oishideb/cow_sd_generated_4      # Fixed cow walking image 45 degree

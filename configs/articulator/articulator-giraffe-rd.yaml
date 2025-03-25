@@ -2,7 +2,7 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset       # Class Name
-  root_dir: /work/oishideb/horse_sd_generated_3_new_mvDream 
+  root_dir: ./assets/dummy_data/target 
   attributes:
     - name: image
       suffix: _rgb.png

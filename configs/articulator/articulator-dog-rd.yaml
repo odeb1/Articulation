@@ -2,7 +2,7 @@ _target_: dos.trainer.Trainer # Class Name
 
 train_dataset:
   _target_: dos.datasets.ImageDataset          # Class Name
-  root_dir: /work/oishideb/cow_sd_generated_5  # /0_poses_target_img_NO_KPs.png 
+  root_dir: ./assets/dummy_data/target
   attributes:
     - name: image
       suffix: _rgb.png
@@ -51,8 +51,6 @@ model:
   num_sample_bone_line: 4  # 
   num_sample_farthest_points: 350
   mode_kps_selection: "kps_based_on_superAnimal" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
-  # shape_template_path: /work/oishideb/from_nfs2/uploads-files-2571750-Sheep_Family_v01/Sheep_HighPoly.obj   # 20 bones
-  # shape_template_path: /users/oishideb/oishideb/SheepFemaleRD/SheepFemaleRD.obj             # Rest Pose
   shape_template_path: /users/oishideb/oishideb/mesh_assets_all/dog_1/dog.obj             # Rest Pose
   enable_texture_predictor: False
 
