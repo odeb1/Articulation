@@ -27,9 +27,8 @@ model:
   gltf_skin:
     _target_: dos.components.skinning.gltf_skinning.Skin
     # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/yellow_bird/yellow_bird.gltf             # Rest gen Pose
-    gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/yellow_bird/yellow_bird.gltf 
-    # gltf_file_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.gltf         # Walk Pose better
-
+    gltf_file_path: ./assets/meshes/bird_brown/bird_brown.gltf 
+  
   path_to_save_images: /work/oishideb/from_nfs2/nfs2/dos_output_files/cow/all_iteration_Train/batch_size_0/DOS-3180_bird_brown_wings_up_sd_sds_lr_0_001
   superAnimal_kp_ON: False   # IMPORTANT: switich on/off superAni_trainer_ON and change mode_kps_selection
 
@@ -55,8 +54,7 @@ model:
   mode_kps_selection: "kps_fr_sample_farthest_points" # Options are "kps_based_on_superAnimal", "kps_fr_sample_on_bone_line" OR "kps_fr_sample_farthest_points"
 
   # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/yellow_bird/yellow_bird.obj       # Rest st Pose
-  shape_template_path: /users/oishideb/oishideb/mesh_assets_all/yellow_bird/yellow_bird.obj         # Rest st Pose
-  # shape_template_path: /users/oishideb/oishideb/mesh_assets_all/tiger_walk_pose/tiger.obj         # Walk Pose better
+  shape_template_path: ./assets/meshes/bird_brown/yellow_bird.obj         # Rest st Pose
   enable_texture_predictor: False
 
   view_option: "multi_view_azimu" # Options are "multi_view_azimu"; "multi_view_rand"; "single_view"
